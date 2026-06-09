@@ -1,0 +1,1520 @@
+import { useState } from "react";
+
+const C = {
+  bg: "#f5f2ee", card: "#ffffff", border: "#e2ddd8",
+  text: "#1a1a1a", muted: "#6b6560", faint: "#9e9890",
+  his: "#2563eb", hers: "#db2777",
+  gym: "#16a34a", rest: "#6366f1", yoga: "#db2777",
+  walk: "#7c3aed", fakeaway: "#ea580c",
+};
+
+const ALL_DAYS = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
+const DAY_FULL = { Mon:"Monday",Tue:"Tuesday",Wed:"Wednesday",Thu:"Thursday",Fri:"Friday",Sat:"Saturday",Sun:"Sunday" };
+const typeEmojis = { gym:"🏋️", rest:"🛋️", yoga:"🧘", walk:"🚶‍♀️", fakeaway:"🍟" };
+const typeLabels = { gym:"Gym Day", rest:"Rest Day", yoga:"Yoga Day", walk:"Walk Day", fakeaway:"Friday Fakeaway" };
+const typeColors = { gym:C.gym, rest:C.rest, yoga:C.yoga, walk:C.walk, fakeaway:C.fakeaway };
+
+// ── FAKEAWAY OPTIONS (6 total) ───────────────────────────────────────────────
+const fakeawayOptions = [
+  { id:"fa1", name:"🍗 Baked KFC Style", kcal:680, protein:62, carbs:52, fat:16,
+    his:"Skinless chicken thighs (250g) coated in paprika, garlic powder, herbs, cayenne, salt. Baked 200°C/35 mins. Sweet potato wedges (spray only). Slaw with fat-free yoghurt instead of mayo.",
+    hers:"Skinless chicken thighs (210g), same coating and method. Smaller wedge portion. Yoghurt slaw.",
+    tip:"Tastes like a cheat meal. Isn't one. The spice coating gives full KFC satisfaction without the fryer." },
+  { id:"fa2", name:"🌯 Chicken Burrito Bowl", kcal:650, protein:60, carbs:55, fat:14,
+    his:"Grilled spiced chicken (220g), 80g rice, salsa, jalapeños, shredded lettuce, 30g low-fat cheese, fat-free yoghurt. No wrap.",
+    hers:"Grilled spiced chicken (190g), 60g rice, same toppings. No wrap.",
+    tip:"Skip the wrap, save ~200 kcal. Every flavour note is still there." },
+  { id:"fa3", name:"🍕 Chicken Flatbread Pizza", kcal:620, protein:58, carbs:48, fat:14,
+    his:"Wholemeal pitta base, passata, 40g light mozzarella, grilled chicken strips (150g), peppers, red onion, chilli flakes. Grill 8 mins.",
+    hers:"Same recipe, 30g mozzarella, 130g chicken.",
+    tip:"One pitta, one pizza. Far lower calorie than delivery and hits the craving cleanly." },
+  { id:"fa4", name:"🍜 Chicken Noodle Stir Fry", kcal:600, protein:56, carbs:50, fat:12,
+    his:"Chicken breast (220g) sliced, rice noodles (80g dry), pak choi, spring onions, garlic, ginger, soy sauce, chilli, sesame oil (1 tsp). Wok on high heat.",
+    hers:"Chicken breast (180g), 60g noodles, same veg and sauce.",
+    tip:"High heat, fast cook. 1 tsp sesame oil goes a long way for flavour. Tastes like a takeaway noodle box." },
+  { id:"fa5", name:"🫔 Chicken Shawarma Wrap", kcal:610, protein:58, carbs:46, fat:14,
+    his:"Chicken thigh (220g) marinated in cumin, coriander, turmeric, garlic, lemon, low-fat yoghurt. Grilled or baked. Wholemeal wrap, shredded lettuce, tomato, cucumber, fat-free yoghurt garlic sauce.",
+    hers:"Chicken thigh (180g), same marinade. Half wrap or lettuce wrap option.",
+    tip:"Make the marinade the night before. The yoghurt tenderises the chicken and the spices do all the work." },
+  { id:"fa6", name:"🍔 Chicken Smash Burger", kcal:640, protein:60, carbs:44, fat:16,
+    his:"Minced chicken breast patty (220g) seasoned with garlic powder, paprika, salt, smashed flat on a hot pan. 1 wholemeal bun, lettuce, tomato, red onion, mustard, fat-free yoghurt burger sauce.",
+    hers:"Patty (180g), same build. Smaller bun or open-face.",
+    tip:"Smashing the patty flat creates maximum crust. The yoghurt-based burger sauce is indistinguishable from the real thing." },
+  { id:"fa7", name:"🐟 Homemade Fish & Chips", kcal:660, protein:52, carbs:58, fat:16,
+    his:"Cod or haddock fillet (200g) coated in seasoned breadcrumbs (panko + paprika + garlic powder), oven-baked at 200°C/20 mins on a rack so it crisps underneath. Chunky chips from 300g Maris Piper — cut thick, par-boil 5 mins, spray with oil, roast 35 mins at 210°C. Mushy peas (100g) and a wedge of lemon. Skip the batter — the panko crust is crunchier.",
+    hers:"Same method. Fillet (160g), chips from 220g potato. Same mushy peas and lemon.",
+    tip:"The rack is the secret — hot air circulates under the fish and you get a genuine crunch without deep frying. Par-boiling the chips before roasting is non-negotiable for fluffy insides." },
+];
+
+// ── WEEKLY MEAL PLANS ─────────────────────────────────────────────────────────
+// 3 rotating base plans (weeks 1-3, 4-6, 7-9, week 10 = best of)
+const weekPlans = {
+  his: {
+    1: { // weeks 1-3
+      gym: {
+        note:"Foundation weeks. Nail the basics — hit protein, prep lunch, train fasted.",
+        meals:[
+          { time:"Post-Gym", name:"Post-Workout Breakfast ★",
+            options:[
+              { label:"Greek Yoghurt & Banana", desc:"Low-fat Greek yoghurt (250g) + 1 banana + 1 tsp chia seeds. Black coffee.", kcal:290, protein:28, carbs:38, fat:4 },
+              { label:"Protein Smoothie", desc:"250ml skimmed milk + 1 scoop vanilla protein powder + 1 banana + handful of oats (30g). Blended.", kcal:320, protein:35, carbs:42, fat:4 },
+              { label:"Cottage Cheese Bowl", desc:"200g low-fat cottage cheese + 1 banana + drizzle of honey (1 tsp). Black coffee.", kcal:280, protein:30, carbs:32, fat:4 },
+              { label:"🌙 Overnight Oats", desc:"Prep the night before: 60g rolled oats + 200ml skimmed milk + 1 scoop protein powder + 1 tsp chia seeds + half banana sliced on top. Refrigerate overnight. Grab and go post-workout.", kcal:380, protein:34, carbs:48, fat:6 },
+            ]},
+          { time:"10:30", name:"Mid-Morning",
+            options:[
+              { label:"Rice Cake & Yoghurt", desc:"1 rice cake with thin peanut butter + low-fat Greek yoghurt (150g).", kcal:200, protein:18, carbs:18, fat:5 },
+              { label:"Cottage Cheese & Veg", desc:"100g cottage cheese + cucumber slices + cherry tomatoes.", kcal:130, protein:14, carbs:6, fat:2 },
+            ]},
+          { time:"1:00 PM", name:"Lunch",
+            options:[
+              { label:"Chicken Rice Salad", desc:"Grilled chicken breast (180g), large salad, 80g cooked brown rice. Lemon + 1 tsp olive oil.", kcal:490, protein:52, carbs:38, fat:10 },
+              { label:"Chicken & Veg Bowl", desc:"Grilled chicken breast (180g), roasted veg (courgette, peppers, red onion), 80g quinoa. Lemon dressing.", kcal:480, protein:50, carbs:36, fat:10 },
+              { label:"🥪 Chicken Sandwich", desc:"2 slices wholemeal bread, 160g sliced chicken breast, lettuce, tomato, cucumber, mustard. No butter.", kcal:430, protein:48, carbs:32, fat:8 },
+              { label:"🥪 Chicken & Cottage Cheese Sandwich", desc:"2 slices wholemeal bread, 140g chicken breast, 60g cottage cheese spread, cucumber, spinach.", kcal:420, protein:50, carbs:30, fat:8 },
+            ]},
+          { time:"4:30 PM", name:"Afternoon",
+            options:[
+              { label:"Banana & Rice Cakes", desc:"1 banana + 2 rice cakes.", kcal:180, protein:4, carbs:42, fat:1 },
+              { label:"Greek Yoghurt", desc:"Low-fat Greek yoghurt (150g).", kcal:120, protein:14, carbs:8, fat:1 },
+            ]},
+          { time:"7:30 PM", name:"Dinner",
+            options:[
+              { label:"Baked Chicken Thighs", desc:"Skinless chicken thighs (220g) with paprika and garlic. Broccoli, green beans. 120g sweet potato mash.", kcal:580, protein:55, carbs:32, fat:14 },
+              { label:"Chicken & Sweet Potato", desc:"Chicken breast (200g) baked with herbs. Steamed tenderstem broccoli. 130g sweet potato mash.", kcal:560, protein:52, carbs:34, fat:10 },
+            ]},
+          { time:"9:30 PM", name:"Evening",
+            options:[
+              { label:"Cottage Cheese", desc:"100g low-fat cottage cheese.", kcal:110, protein:14, carbs:4, fat:2 },
+              { label:"Greek Yoghurt", desc:"Low-fat Greek yoghurt (100g).", kcal:90, protein:10, carbs:6, fat:1 },
+              { label:"Turkey Slices", desc:"3–4 slices of wafer-thin turkey breast (80g). Simple, high protein, almost zero fat.", kcal:80, protein:16, carbs:1, fat:1 },
+              { label:"Warm Skimmed Milk", desc:"250ml warm skimmed milk. Contains tryptophan which genuinely supports sleep. No this isn't a myth.", kcal:90, protein:9, carbs:12, fat:0 },
+              { label:"Nothing", desc:"If you're not hungry, don't eat. The deficit works either way.", kcal:0, protein:0, carbs:0, fat:0 },
+            ]},
+        ]},
+      rest: {
+        note:"Lower carbs today. Same protein. Bigger deficit.",
+        meals:[
+          { time:"7:30 AM", name:"Breakfast",
+            options:[
+              { label:"Yoghurt & Chia", desc:"Low-fat Greek yoghurt (200g) + 1 tsp chia seeds. Black coffee.", kcal:200, protein:22, carbs:10, fat:4 },
+              { label:"Cottage Cheese Bowl", desc:"150g low-fat cottage cheese + cucumber + 5 cherry tomatoes.", kcal:140, protein:18, carbs:6, fat:2 },
+              { label:"🥓 Bacon & Yoghurt", desc:"2 grilled medallion bacon rashers (back bacon, fat removed) + 150g low-fat Greek yoghurt. Weekend treat — medallion bacon is the leanest cut. Fits the plan if lunch stays clean.", kcal:230, protein:28, carbs:6, fat:8 },
+            ]},
+          { time:"10:30", name:"Mid-Morning",
+            options:[
+              { label:"Rice Cake & Cottage Cheese", desc:"1 rice cake + 80g cottage cheese + cucumber.", kcal:130, protein:12, carbs:10, fat:2 },
+              { label:"Greek Yoghurt", desc:"Low-fat Greek yoghurt (150g).", kcal:120, protein:14, carbs:8, fat:1 },
+            ]},
+          { time:"1:00 PM", name:"Lunch",
+            options:[
+              { label:"Chicken Stir Fry (No Rice)", desc:"Chicken breast (180g) stir-fried with courgette, peppers, onion, soy sauce, chilli. No rice.", kcal:360, protein:50, carbs:10, fat:8 },
+              { label:"Chicken Salad", desc:"Sliced chicken breast (180g), large salad with cucumber, celery, tomato, radishes. Lemon + mustard dressing.", kcal:340, protein:48, carbs:8, fat:8 },
+              { label:"🥪 Open Chicken Sandwich", desc:"1 slice wholemeal bread (open), 150g sliced chicken breast, tomato, spinach, mustard. Lower carbs on rest day.", kcal:320, protein:46, carbs:18, fat:7 },
+            ]},
+          { time:"3:30 PM", name:"Afternoon",
+            options:[
+              { label:"Rice Cakes & Cottage Cheese", desc:"2 rice cakes + 80g cottage cheese.", kcal:160, protein:12, carbs:18, fat:2 },
+              { label:"Boiled Egg & Veg", desc:"1 boiled egg + handful cherry tomatoes + cucumber.", kcal:100, protein:7, carbs:4, fat:5 },
+            ]},
+          { time:"7:00 PM", name:"Dinner",
+            options:[
+              { label:"Baked Chicken & Veg", desc:"Chicken breast (200g) baked with rosemary. Roasted asparagus, cherry tomatoes, red onion. Fat-free yoghurt dip.", kcal:430, protein:52, carbs:14, fat:8 },
+              { label:"Chicken & Greens", desc:"Chicken breast (200g) pan-fried in low-cal spray. Steamed broccoli, green beans, spinach. Lemon and garlic.", kcal:400, protein:50, carbs:10, fat:8 },
+            ]},
+          { time:"9:00 PM", name:"Evening",
+            options:[
+              { label:"Cottage Cheese", desc:"100g low-fat cottage cheese — only if genuinely hungry.", kcal:100, protein:14, carbs:4, fat:2 },
+              { label:"Greek Yoghurt", desc:"Low-fat Greek yoghurt (100g).", kcal:90, protein:10, carbs:6, fat:1 },
+              { label:"Turkey Slices", desc:"3–4 slices wafer-thin turkey breast (80g). Zero prep, high protein.", kcal:80, protein:16, carbs:1, fat:1 },
+              { label:"Nothing", desc:"If you're not hungry, don't eat. Rest day deficit is already deeper.", kcal:0, protein:0, carbs:0, fat:0 },
+            ]},
+        ]},
+    },
+    2: { // weeks 4-6
+      gym: {
+        note:"Building phase. Slightly more variety. Same targets — keep hitting protein.",
+        meals:[
+          { time:"Post-Gym", name:"Post-Workout Breakfast ★",
+            options:[
+              { label:"Yoghurt Parfait", desc:"250g low-fat Greek yoghurt layered with 30g oats (raw) and blueberries. Black coffee.", kcal:310, protein:28, carbs:42, fat:5 },
+              { label:"Banana Protein Shake", desc:"300ml skimmed milk + 1 scoop chocolate protein powder + 1 banana. Shake or blend.", kcal:320, protein:36, carbs:40, fat:4 },
+              { label:"Savoury Cottage Cheese", desc:"200g low-fat cottage cheese + 2 rice cakes + sliced cucumber. Black coffee.", kcal:260, protein:28, carbs:18, fat:4 },
+              { label:"🌙 Overnight Oats", desc:"Prep the night before: 60g rolled oats + 200ml skimmed milk + 1 scoop protein powder + 1 tsp chia seeds + banana sliced on top. Refrigerate overnight. Ready post-workout.", kcal:380, protein:34, carbs:48, fat:6 },
+            ]},
+          { time:"10:30", name:"Mid-Morning",
+            options:[
+              { label:"Yoghurt & Berries", desc:"Low-fat Greek yoghurt (150g) + handful of mixed berries.", kcal:150, protein:14, carbs:14, fat:2 },
+              { label:"Cottage Cheese & Tomato", desc:"100g cottage cheese + cherry tomatoes + pinch of black pepper.", kcal:120, protein:14, carbs:4, fat:2 },
+            ]},
+          { time:"1:00 PM", name:"Lunch",
+            options:[
+              { label:"Chicken Wrap", desc:"Chicken breast (170g) sliced in 1 wholemeal wrap, lettuce, tomato, mustard, fat-free yoghurt sauce. Side of cucumber.", kcal:460, protein:48, carbs:38, fat:10 },
+              { label:"Chicken & Quinoa Bowl", desc:"Grilled chicken (180g), 80g quinoa, roasted veg, lemon dressing.", kcal:490, protein:52, carbs:36, fat:10 },
+              { label:"🥪 Chicken & Salad Sandwich", desc:"2 slices wholemeal bread, 160g chicken breast, lettuce, tomato, cucumber, fat-free yoghurt mayo. No butter.", kcal:440, protein:50, carbs:32, fat:8 },
+              { label:"🥪 Turkey & Mustard Sandwich", desc:"2 slices wholemeal bread, 5 slices wafer-thin turkey breast (100g), lettuce, tomato, mustard. High protein, easy prep.", kcal:380, protein:40, carbs:30, fat:6 },
+            ]},
+          { time:"4:30 PM", name:"Afternoon",
+            options:[
+              { label:"Banana & Yoghurt", desc:"1 banana + 100g low-fat Greek yoghurt.", kcal:180, protein:10, carbs:30, fat:2 },
+              { label:"Rice Cakes & Cottage Cheese", desc:"2 rice cakes + 60g cottage cheese.", kcal:160, protein:10, carbs:20, fat:2 },
+            ]},
+          { time:"7:30 PM", name:"Dinner",
+            options:[
+              { label:"Chicken Thigh Traybake", desc:"Skinless chicken thighs (220g) with cherry tomatoes, courgette, red onion, paprika. All in one tray, 200°C/35 mins. 100g sweet potato mash.", kcal:570, protein:54, carbs:28, fat:14 },
+              { label:"Chicken & Roast Veg", desc:"Chicken breast (200g) with roasted butternut squash (100g), asparagus, cherry tomatoes. Drizzle of olive oil.", kcal:540, protein:52, carbs:30, fat:12 },
+              { label:"🥩 Lean Steak & Veg", desc:"Lean sirloin or rump steak (180g, fat trimmed). Pan-seared 2–3 mins each side. Steamed broccoli and green beans. Small jacket potato (120g). Every ~2 weeks.", kcal:580, protein:56, carbs:28, fat:16 },
+              { label:"🦃 Turkey Bolognese", desc:"Turkey mince (200g) browned with onion, garlic, carrot, passata, Worcestershire sauce, herbs. 80g wholemeal pasta. 5g parmesan.", kcal:560, protein:54, carbs:42, fat:12 },
+            ]},
+          { time:"9:30 PM", name:"Evening",
+            options:[
+              { label:"Cottage Cheese", desc:"100g low-fat cottage cheese.", kcal:110, protein:14, carbs:4, fat:2 },
+              { label:"Greek Yoghurt", desc:"Low-fat Greek yoghurt (100g).", kcal:90, protein:10, carbs:6, fat:1 },
+              { label:"Turkey Slices", desc:"3–4 slices of wafer-thin turkey breast (80g). Simple, high protein, almost zero fat.", kcal:80, protein:16, carbs:1, fat:1 },
+              { label:"Warm Skimmed Milk", desc:"250ml warm skimmed milk. Contains tryptophan which genuinely supports sleep. No this isn't a myth.", kcal:90, protein:9, carbs:12, fat:0 },
+              { label:"Nothing", desc:"If you're not hungry, don't eat. The deficit works either way.", kcal:0, protein:0, carbs:0, fat:0 },
+            ]},
+        ]},
+      rest: {
+        note:"Mid-plan rest days. You should be noticing results by now. Stay the course.",
+        meals:[
+          { time:"7:30 AM", name:"Breakfast",
+            options:[
+              { label:"Yoghurt & Chia", desc:"Low-fat Greek yoghurt (200g) + 1 tsp chia seeds + 1 tsp flaxseed. Black coffee.", kcal:210, protein:22, carbs:10, fat:5 },
+              { label:"Cottage Cheese & Cucumber", desc:"180g low-fat cottage cheese + cucumber + cherry tomatoes + black pepper.", kcal:160, protein:20, carbs:6, fat:2 },
+              { label:"🥓 Bacon & Cottage Cheese", desc:"2 grilled medallion bacon rashers (back bacon, fat removed) + 150g cottage cheese + tomatoes. Weekend treat kept lean.", kcal:240, protein:30, carbs:6, fat:8 },
+            ]},
+          { time:"10:30", name:"Mid-Morning",
+            options:[
+              { label:"Greek Yoghurt", desc:"Low-fat Greek yoghurt (150g).", kcal:120, protein:14, carbs:8, fat:1 },
+              { label:"Rice Cake & Cottage Cheese", desc:"1 rice cake + 80g cottage cheese.", kcal:130, protein:12, carbs:10, fat:2 },
+            ]},
+          { time:"1:00 PM", name:"Lunch",
+            options:[
+              { label:"Chicken & Herb Salad", desc:"Chicken breast (180g) cold sliced over salad with fresh mint, parsley, cucumber, tomato, lemon juice.", kcal:330, protein:48, carbs:6, fat:8 },
+              { label:"Chicken Stir Fry", desc:"Chicken breast (180g) with pak choi, spring onion, garlic, soy sauce, chilli. No rice.", kcal:340, protein:48, carbs:8, fat:8 },
+              { label:"🥪 Open Chicken Sandwich", desc:"1 slice wholemeal bread, 150g chicken breast, cucumber, mustard, spinach. Open sandwich keeps carbs lower on rest days.", kcal:310, protein:46, carbs:18, fat:7 },
+            ]},
+          { time:"3:30 PM", name:"Afternoon",
+            options:[
+              { label:"Cottage Cheese & Veg", desc:"100g cottage cheese + celery sticks + cherry tomatoes.", kcal:110, protein:12, carbs:6, fat:2 },
+              { label:"Boiled Egg & Tomatoes", desc:"1 boiled egg + cherry tomatoes.", kcal:90, protein:7, carbs:4, fat:5 },
+            ]},
+          { time:"7:00 PM", name:"Dinner",
+            options:[
+              { label:"Lemon Herb Chicken", desc:"Chicken breast (200g) marinated in lemon, garlic, oregano. Baked. Steamed broccoli and green beans.", kcal:390, protein:50, carbs:8, fat:8 },
+              { label:"Chilli Chicken & Veg", desc:"Chicken breast (200g) pan-fried with chilli, garlic, tomatoes. Served on wilted spinach.", kcal:380, protein:50, carbs:10, fat:8 },
+              { label:"🦃 Turkey Mince Chilli", desc:"Turkey mince (200g) with kidney beans (50g), onion, garlic, cumin, smoked paprika, chilli, passata. Low-carb — serve on its own or with 60g rice.", kcal:400, protein:52, carbs:18, fat:8 },
+            ]},
+          { time:"9:00 PM", name:"Evening",
+            options:[
+              { label:"Cottage Cheese", desc:"100g low-fat cottage cheese — only if genuinely hungry.", kcal:100, protein:14, carbs:4, fat:2 },
+              { label:"Greek Yoghurt", desc:"Low-fat Greek yoghurt (100g).", kcal:90, protein:10, carbs:6, fat:1 },
+              { label:"Turkey Slices", desc:"3–4 slices wafer-thin turkey breast (80g). Zero prep, high protein.", kcal:80, protein:16, carbs:1, fat:1 },
+              { label:"Nothing", desc:"If you're not hungry, don't eat. Rest day deficit is already deeper.", kcal:0, protein:0, carbs:0, fat:0 },
+            ]},
+        ]},
+    },
+    3: { // weeks 7-10
+      gym: {
+        note:"Final stretch. You're close. Consistency here is what separates results from near-results.",
+        meals:[
+          { time:"Post-Gym", name:"Post-Workout Breakfast ★",
+            options:[
+              { label:"Power Yoghurt Bowl", desc:"250g low-fat Greek yoghurt + 30g oats + banana + 1 tsp honey. Black coffee.", kcal:330, protein:28, carbs:48, fat:5 },
+              { label:"Cottage Cheese & Fruit", desc:"200g cottage cheese + 1 sliced banana + 1 tsp chia seeds.", kcal:280, protein:28, carbs:30, fat:4 },
+              { label:"Protein Shake & Fruit", desc:"1 scoop protein powder + 300ml skimmed milk + 1 banana. Handful of grapes.", kcal:320, protein:36, carbs:40, fat:4 },
+              { label:"🌙 Overnight Oats", desc:"Prep the night before: 60g oats + 200ml skimmed milk + 1 scoop protein powder + 1 tsp chia seeds + banana. Refrigerate. Ideal if you train very early — zero morning prep needed.", kcal:380, protein:34, carbs:48, fat:6 },
+            ]},
+          { time:"10:30", name:"Mid-Morning",
+            options:[
+              { label:"Yoghurt & Chia", desc:"Low-fat Greek yoghurt (150g) + 1 tsp chia seeds.", kcal:140, protein:14, carbs:10, fat:3 },
+              { label:"Rice Cake & Cottage Cheese", desc:"1 rice cake + 80g cottage cheese.", kcal:130, protein:12, carbs:10, fat:2 },
+            ]},
+          { time:"1:00 PM", name:"Lunch",
+            options:[
+              { label:"Chicken & Lentil Bowl", desc:"Chicken breast (160g) with 80g cooked red lentils, spinach, roasted peppers, cumin dressing.", kcal:480, protein:50, carbs:38, fat:8 },
+              { label:"Teriyaki Chicken Bowl", desc:"Chicken breast (180g) in low-sugar teriyaki sauce (soy, ginger, garlic, honey 1 tsp). 80g rice, steamed broccoli.", kcal:490, protein:52, carbs:40, fat:8 },
+              { label:"🥪 Teriyaki Chicken Sandwich", desc:"2 slices wholemeal bread, 150g grilled chicken with a little teriyaki sauce, cucumber, spring onion, lettuce.", kcal:430, protein:48, carbs:32, fat:8 },
+              { label:"🥪 Chicken & Pesto Sandwich", desc:"2 slices wholemeal bread, 160g chicken breast, 1 tsp green pesto, spinach, tomato, red onion. Filling and flavourful.", kcal:440, protein:50, carbs:30, fat:10 },
+            ]},
+          { time:"4:30 PM", name:"Afternoon",
+            options:[
+              { label:"Banana", desc:"1 banana.", kcal:100, protein:1, carbs:25, fat:0 },
+              { label:"Yoghurt & Berries", desc:"100g Greek yoghurt + berries.", kcal:120, protein:12, carbs:12, fat:1 },
+            ]},
+          { time:"7:30 PM", name:"Dinner",
+            options:[
+              { label:"One-Pan Chicken", desc:"Chicken thighs (220g, skinless) with baby potatoes (120g), asparagus, cherry tomatoes, garlic, olive oil (1 tsp). Roasted together 35 mins.", kcal:580, protein:54, carbs:34, fat:14 },
+              { label:"Chicken & Butternut", desc:"Chicken breast (200g) baked. Roasted butternut squash (120g), tenderstem broccoli, garlic. Simple and filling.", kcal:540, protein:52, carbs:32, fat:10 },
+              { label:"🥩 Steak & Sweet Potato", desc:"Lean sirloin (180g, fat trimmed). Rested 5 mins after cooking. 120g sweet potato mash, steamed green beans. Every ~2 weeks — use this in the final block as a reward meal.", kcal:580, protein:56, carbs:30, fat:16 },
+              { label:"🐟 Baked Salmon & Veg", desc:"Salmon fillet (180g) baked with lemon and dill at 180°C/18 mins. Roasted asparagus and cherry tomatoes. Rich in omega-3 — good for inflammation from training.", kcal:540, protein:46, carbs:8, fat:28 },
+            ]},
+          { time:"9:30 PM", name:"Evening",
+            options:[
+              { label:"Cottage Cheese", desc:"100g low-fat cottage cheese.", kcal:110, protein:14, carbs:4, fat:2 },
+              { label:"Greek Yoghurt", desc:"Low-fat Greek yoghurt (100g).", kcal:90, protein:10, carbs:6, fat:1 },
+              { label:"Turkey Slices", desc:"3–4 slices of wafer-thin turkey breast (80g). Simple, high protein, almost zero fat.", kcal:80, protein:16, carbs:1, fat:1 },
+              { label:"Warm Skimmed Milk", desc:"250ml warm skimmed milk. Contains tryptophan which genuinely supports sleep. No this isn't a myth.", kcal:90, protein:9, carbs:12, fat:0 },
+              { label:"Nothing", desc:"If you're not hungry, don't eat. The deficit works either way.", kcal:0, protein:0, carbs:0, fat:0 },
+            ]},
+        ]},
+      rest: {
+        note:"Last rest days of the plan. You know the drill. Deep deficit, full protein.",
+        meals:[
+          { time:"7:30 AM", name:"Breakfast",
+            options:[
+              { label:"Yoghurt & Seeds", desc:"200g low-fat Greek yoghurt + 1 tsp chia + 1 tsp pumpkin seeds.", kcal:220, protein:22, carbs:10, fat:6 },
+              { label:"Cottage Cheese Bowl", desc:"180g cottage cheese + cucumber + tomatoes.", kcal:160, protein:20, carbs:6, fat:2 },
+              { label:"🥓 Bacon & Yoghurt", desc:"2 grilled medallion bacon rashers (back bacon, fat removed) + 150g low-fat Greek yoghurt. Weekend treat — fits the calories if lunch is kept clean.", kcal:230, protein:28, carbs:6, fat:8 },
+            ]},
+          { time:"10:30", name:"Mid-Morning",
+            options:[
+              { label:"Greek Yoghurt", desc:"Low-fat Greek yoghurt (150g).", kcal:120, protein:14, carbs:8, fat:1 },
+              { label:"Cottage Cheese & Veg", desc:"80g cottage cheese + cucumber + celery.", kcal:100, protein:12, carbs:4, fat:2 },
+            ]},
+          { time:"1:00 PM", name:"Lunch",
+            options:[
+              { label:"Asian Chicken Salad", desc:"Cold chicken breast (180g) sliced over shredded cabbage, carrot, spring onion, coriander. Soy-lime-ginger dressing.", kcal:320, protein:46, carbs:10, fat:8 },
+              { label:"Chicken & Spinach", desc:"Chicken breast (180g) pan-fried with garlic and lemon over wilted spinach. Simple and lean.", kcal:310, protein:46, carbs:4, fat:8 },
+              { label:"🥪 Open Chicken Sandwich", desc:"1 slice wholemeal bread, 150g sliced chicken breast, spinach, tomato, mustard. Open keeps it lean on rest days.", kcal:310, protein:46, carbs:18, fat:7 },
+            ]},
+          { time:"3:30 PM", name:"Afternoon",
+            options:[
+              { label:"Cottage Cheese & Tomato", desc:"100g cottage cheese + cherry tomatoes.", kcal:110, protein:12, carbs:6, fat:2 },
+            ]},
+          { time:"7:00 PM", name:"Dinner",
+            options:[
+              { label:"Harissa Chicken", desc:"Chicken breast (200g) rubbed with harissa paste (low-cal). Roasted red peppers, courgette, cherry tomatoes. Fat-free yoghurt on the side.", kcal:400, protein:50, carbs:12, fat:8 },
+              { label:"Chicken Provençal", desc:"Chicken breast (200g) simmered in passata, olives (6), capers, garlic, thyme. Served with wilted spinach.", kcal:390, protein:50, carbs:10, fat:10 },
+              { label:"🥩 Lean Beef Mince & Veg", desc:"Extra-lean beef mince (180g, 5% fat) browned with garlic, onion, smoked paprika, cumin. Served with roasted courgette and peppers — no carbs on rest day.", kcal:410, protein:52, carbs:10, fat:16 },
+              { label:"🐟 Baked Cod & Greens", desc:"Cod fillet (180g) baked with garlic, lemon, capers at 180°C/18 mins. Steamed broccoli and green beans. Very lean, high protein.", kcal:320, protein:46, carbs:6, fat:6 },
+            ]},
+          { time:"9:00 PM", name:"Evening",
+            options:[
+              { label:"Cottage Cheese", desc:"100g low-fat cottage cheese — only if genuinely hungry.", kcal:100, protein:14, carbs:4, fat:2 },
+              { label:"Greek Yoghurt", desc:"Low-fat Greek yoghurt (100g).", kcal:90, protein:10, carbs:6, fat:1 },
+              { label:"Turkey Slices", desc:"3–4 slices wafer-thin turkey breast (80g). Zero prep, high protein.", kcal:80, protein:16, carbs:1, fat:1 },
+              { label:"Nothing", desc:"If you're not hungry, don't eat. Rest day deficit is already deeper.", kcal:0, protein:0, carbs:0, fat:0 },
+            ]},
+        ]},
+    },
+  },
+  hers: {
+    1: {
+      yoga: {
+        note:"Yoga day — 1,601 kcal target. Slightly more than rest days. Cortisol reduction from yoga actively helps fat loss beyond just the calories burned.",
+        meals:[
+          { time:"7:30 AM", name:"Breakfast",
+            options:[
+              { label:"Scrambled Eggs & Toast", desc:"2 whole eggs scrambled with spinach and cherry tomatoes. 1 slice wholegrain toast. Green tea.", kcal:280, protein:24, carbs:18, fat:12 },
+              { label:"Poached Eggs & Avocado", desc:"2 poached eggs, ¼ avocado, cherry tomatoes. No toast.", kcal:260, protein:20, carbs:6, fat:16 },
+            ]},
+          { time:"10:30", name:"Mid-Morning",
+            options:[
+              { label:"Greek Yoghurt & Banana", desc:"Low-fat Greek yoghurt (150g) + half a banana, sliced.", kcal:145, protein:14, carbs:16, fat:2 },
+              { label:"Boiled Egg & Tomatoes", desc:"1 boiled egg + cherry tomatoes + cucumber.", kcal:100, protein:8, carbs:4, fat:5 },
+            ]},
+          { time:"1:00 PM", name:"Lunch",
+            options:[
+              { label:"Chicken Avocado Salad", desc:"Grilled chicken breast (160g), large salad, ¼ avocado. Lemon + 1 tsp olive oil.", kcal:400, protein:42, carbs:8, fat:16 },
+              { label:"Chicken & Quinoa", desc:"Grilled chicken (160g), 70g cooked quinoa, cucumber, tomato, mint, lemon dressing.", kcal:390, protein:42, carbs:28, fat:10 },
+              { label:"🥪 Chicken & Avocado Sandwich", desc:"2 slices wholemeal bread, 120g chicken breast, ¼ avocado sliced, lettuce, tomato. No butter.", kcal:390, protein:36, carbs:30, fat:14 },
+              { label:"🥚 Egg & Cress Sandwich", desc:"2 slices wholemeal bread, 2 boiled eggs mashed with fat-free yoghurt, mustard, cress, black pepper.", kcal:340, protein:24, carbs:30, fat:12 },
+            ]},
+          { time:"4:00 PM", name:"Pre-Yoga",
+            options:[
+              { label:"Boiled Egg & Veg", desc:"1 boiled egg + 5 cherry tomatoes + cucumber sticks.", kcal:100, protein:8, carbs:4, fat:5 },
+              { label:"Greek Yoghurt", desc:"Low-fat Greek yoghurt (100g).", kcal:80, protein:10, carbs:6, fat:1 },
+            ]},
+          { time:"7:30 PM", name:"Dinner",
+            options:[
+              { label:"Chicken & Sweet Potato", desc:"Baked chicken breast (170g) with roasted courgette, peppers, cherry tomatoes. 80g sweet potato mash.", kcal:490, protein:46, carbs:30, fat:12 },
+              { label:"Baked Thigh Traybake", desc:"Skinless chicken thigh (160g) with butternut squash (80g), red onion, peppers. Olive oil (1 tsp).", kcal:470, protein:42, carbs:28, fat:14 },
+            ]},
+          { time:"9:00 PM", name:"Evening",
+            options:[
+              { label:"Greek Yoghurt", desc:"Low-fat Greek yoghurt (100g) if hungry.", kcal:80, protein:10, carbs:6, fat:1 },
+              { label:"Boiled Egg", desc:"1 boiled egg. Prep it earlier in the day — takes 8 mins and keeps in the fridge.", kcal:70, protein:6, carbs:0, fat:5 },
+              { label:"Turkey Slices", desc:"3 slices wafer-thin turkey breast (60g). Zero prep.", kcal:60, protein:12, carbs:1, fat:1 },
+              { label:"Warm Skimmed Milk", desc:"200ml warm skimmed milk. Tryptophan supports sleep quality — relevant given cortisol management.", kcal:70, protein:7, carbs:10, fat:0 },
+              { label:"Nothing", desc:"If not hungry, skip it. Her daily budget is tighter — not eating is fine.", kcal:0, protein:0, carbs:0, fat:0 },
+            ]},
+        ]},
+      gym: {
+        note:"Gym days — 2x weights per week. Post-workout breakfast is your first meal. Protein in within 30 mins of finishing. Same principle as his plan.",
+        meals:[
+          { time:"Post-Gym", name:"Post-Workout Breakfast ★",
+            options:[
+              { label:"Scrambled Eggs & Banana", desc:"2 whole eggs + 1 egg white scrambled with spinach. 1 banana. Black coffee.", kcal:310, protein:26, carbs:28, fat:12 },
+              { label:"Eggs on Toast", desc:"2 poached eggs on 1 slice wholegrain toast with spinach. Coffee.", kcal:290, protein:22, carbs:24, fat:12 },
+              { label:"Yoghurt & Banana", desc:"200g low-fat Greek yoghurt + 1 banana + 1 tsp chia seeds.", kcal:280, protein:22, carbs:34, fat:4 },
+            ]},
+          { time:"10:30", name:"Mid-Morning",
+            options:[
+              { label:"Greek Yoghurt & Banana", desc:"Low-fat Greek yoghurt (150g) + half a banana, sliced.", kcal:145, protein:14, carbs:16, fat:2 },
+              { label:"Boiled Egg & Veg", desc:"1 boiled egg + cherry tomatoes + cucumber.", kcal:100, protein:8, carbs:4, fat:5 },
+            ]},
+          { time:"1:00 PM", name:"Lunch",
+            options:[
+              { label:"Chicken Rice Salad", desc:"Grilled chicken breast (160g), large salad, 70g cooked brown rice. Lemon + 1 tsp olive oil.", kcal:400, protein:42, carbs:28, fat:10 },
+              { label:"Chicken & Quinoa Bowl", desc:"Grilled chicken (160g), 70g quinoa, roasted peppers, lemon dressing.", kcal:390, protein:42, carbs:26, fat:10 },
+              { label:"🥪 Chicken Sandwich", desc:"Wholemeal sandwich (2 slices), sliced chicken breast (130g), lettuce, tomato, cucumber, mustard or fat-free yoghurt mayo. No butter.", kcal:380, protein:38, carbs:32, fat:8 },
+              { label:"🥪 Chicken & Salad Sandwich", desc:"2 slices wholemeal bread, 120g chicken breast sliced, large handful spinach, sliced tomato, fat-free yoghurt garlic sauce.", kcal:370, protein:36, carbs:32, fat:7 },
+            ]},
+          { time:"4:00 PM", name:"Afternoon",
+            options:[
+              { label:"Boiled Egg & Veg", desc:"1 boiled egg + cucumber + cherry tomatoes.", kcal:100, protein:8, carbs:4, fat:5 },
+              { label:"Greek Yoghurt", desc:"Low-fat Greek yoghurt (100g).", kcal:80, protein:10, carbs:6, fat:1 },
+            ]},
+          { time:"7:00 PM", name:"Dinner",
+            options:[
+              { label:"Baked Chicken & Sweet Potato", desc:"Baked chicken breast (170g) with roasted courgette, peppers, cherry tomatoes. 80g sweet potato mash.", kcal:490, protein:46, carbs:28, fat:12 },
+              { label:"Chicken Thigh Traybake", desc:"Skinless chicken thigh (160g) with butternut squash (80g), red onion, peppers. 1 tsp olive oil.", kcal:470, protein:42, carbs:26, fat:14 },
+              { label:"🦃 Turkey Meatballs", desc:"Turkey mince (165g) rolled into meatballs with garlic, herbs, egg white. Baked then simmered in passata. 70g wholemeal pasta.", kcal:470, protein:44, carbs:36, fat:10 },
+            ]},
+          { time:"9:00 PM", name:"Evening",
+            options:[
+              { label:"Greek Yoghurt", desc:"Low-fat Greek yoghurt (100g) if hungry.", kcal:80, protein:10, carbs:6, fat:1 },
+              { label:"Boiled Egg", desc:"1 boiled egg.", kcal:70, protein:6, carbs:0, fat:5 },
+              { label:"Turkey Slices", desc:"3 slices wafer-thin turkey breast (60g). Zero prep.", kcal:60, protein:12, carbs:1, fat:1 },
+              { label:"Warm Skimmed Milk", desc:"200ml warm skimmed milk. Tryptophan supports sleep and recovery.", kcal:70, protein:7, carbs:10, fat:0 },
+              { label:"Nothing", desc:"If not hungry, skip it.", kcal:0, protein:0, carbs:0, fat:0 },
+            ]},
+        ]},
+
+      rest: {
+        note:"Rest day — 1,476 kcal. Lowest day of the week. Keep protein at 155g and lean hard on volume eating — big plates of veg, lean protein, minimal carbs.",
+        meals:[
+          { time:"8:00 AM", name:"Breakfast",
+            options:[
+              { label:"Poached Eggs on Spinach", desc:"2 poached eggs on wilted spinach. No toast. Coffee.", kcal:180, protein:18, carbs:2, fat:10 },
+              { label:"Boiled Eggs", desc:"2 boiled eggs + cucumber slices + cherry tomatoes.", kcal:160, protein:16, carbs:4, fat:10 },
+              { label:"🥓 Bacon & Eggs", desc:"1 grilled medallion bacon rasher + 2 poached or scrambled eggs + wilted spinach. Weekend treat. Medallion bacon is the leanest cut.", kcal:260, protein:28, carbs:2, fat:14 },
+            ]},
+          { time:"11:00", name:"Mid-Morning",
+            options:[
+              { label:"Greek Yoghurt", desc:"Low-fat Greek yoghurt (120g).", kcal:100, protein:12, carbs:6, fat:1 },
+            ]},
+          { time:"1:00 PM", name:"Lunch",
+            options:[
+              { label:"Chicken Green Salad", desc:"Chicken breast (160g) with large green salad, cucumber, celery, radishes. Lemon juice only.", kcal:300, protein:40, carbs:4, fat:8 },
+              { label:"Chicken & Tomato Salad", desc:"Cold sliced chicken (160g), tomatoes, red onion, basil, balsamic (1 tsp).", kcal:290, protein:38, carbs:8, fat:8 },
+              { label:"🥪 Open Chicken Sandwich", desc:"1 slice wholemeal bread (open sandwich), 120g sliced chicken breast, tomato, cucumber, spinach, mustard. Lighter carbs on rest day.", kcal:290, protein:36, carbs:18, fat:7 },
+            ]},
+          { time:"3:30 PM", name:"Afternoon",
+            options:[
+              { label:"Boiled Egg & Tomatoes", desc:"1 boiled egg + cherry tomatoes.", kcal:90, protein:8, carbs:4, fat:5 },
+            ]},
+          { time:"7:00 PM", name:"Dinner",
+            options:[
+              { label:"Roasted Veg Chicken", desc:"Baked chicken breast (160g) with roasted broccoli, courgette, red onion, peppers. Fat-free yoghurt dip with garlic.", kcal:380, protein:42, carbs:12, fat:8 },
+              { label:"Chicken Provençal", desc:"Chicken breast (160g) simmered in passata, capers, olives (4), garlic, thyme. Wilted spinach.", kcal:360, protein:40, carbs:10, fat:10 },
+            ]},
+          { time:"9:00 PM", name:"Evening",
+            options:[
+              { label:"Cottage Cheese", desc:"80g low-fat cottage cheese — only if genuinely hungry.", kcal:80, protein:10, carbs:4, fat:2 },
+              { label:"Boiled Egg", desc:"1 boiled egg.", kcal:70, protein:6, carbs:0, fat:5 },
+              { label:"Greek Yoghurt", desc:"Low-fat Greek yoghurt (80g).", kcal:65, protein:8, carbs:5, fat:1 },
+              { label:"Turkey Slices", desc:"3 slices wafer-thin turkey breast (60g). Zero prep, zero fuss.", kcal:60, protein:12, carbs:1, fat:1 },
+              { label:"Nothing", desc:"If not hungry, skip it.", kcal:0, protein:0, carbs:0, fat:0 },
+            ]},
+        ]},
+    },
+    2: {
+      yoga: {
+        note:"Yoga day — 1,601 kcal. More variety this block, same targets. Protein stays at 155g regardless of day type.",
+        meals:[
+          { time:"7:30 AM", name:"Breakfast",
+            options:[
+              { label:"Eggs & Avocado on Toast", desc:"2 eggs (scrambled or poached) + ¼ avocado on 1 slice wholegrain toast. Green tea.", kcal:300, protein:22, carbs:20, fat:16 },
+              { label:"Egg White Omelette", desc:"3 egg whites + 1 whole egg omelette with peppers, onion, spinach. Coffee.", kcal:200, protein:24, carbs:6, fat:8 },
+            ]},
+          { time:"10:30", name:"Mid-Morning",
+            options:[
+              { label:"Yoghurt & Banana", desc:"Low-fat Greek yoghurt (150g) + half a banana, sliced.", kcal:145, protein:14, carbs:16, fat:2 },
+              { label:"Boiled Egg & Rice Cake", desc:"1 boiled egg + 1 rice cake.", kcal:120, protein:9, carbs:10, fat:5 },
+            ]},
+          { time:"1:00 PM", name:"Lunch",
+            options:[
+              { label:"Chicken Wrap", desc:"Chicken breast (150g) in 1 wholemeal wrap, lettuce, tomato, cucumber, fat-free yoghurt garlic sauce.", kcal:390, protein:40, carbs:30, fat:10 },
+              { label:"Chicken Quinoa Bowl", desc:"Chicken breast (155g), 70g quinoa, roasted peppers, lemon dressing.", kcal:400, protein:42, carbs:28, fat:10 },
+              { label:"🥪 Chicken & Pesto Sandwich", desc:"2 slices wholemeal bread, 120g sliced chicken breast, 1 tsp green pesto, spinach, tomato, red onion.", kcal:370, protein:36, carbs:30, fat:10 },
+              { label:"🥚 Egg Sandwich", desc:"2 slices wholemeal bread, 2 boiled eggs mashed with fat-free yoghurt and chives, cucumber slices.", kcal:330, protein:22, carbs:30, fat:12 },
+            ]},
+          { time:"4:00 PM", name:"Pre-Yoga",
+            options:[
+              { label:"Boiled Egg & Veg", desc:"1 boiled egg + cucumber + tomatoes.", kcal:100, protein:8, carbs:4, fat:5 },
+              { label:"Greek Yoghurt", desc:"Low-fat Greek yoghurt (100g).", kcal:80, protein:10, carbs:6, fat:1 },
+            ]},
+          { time:"7:30 PM", name:"Dinner",
+            options:[
+              { label:"Chicken Traybake", desc:"Skinless chicken thigh (165g), butternut squash (80g), courgette, cherry tomatoes. All roasted together.", kcal:470, protein:42, carbs:26, fat:14 },
+              { label:"Chicken & Lentils", desc:"Chicken breast (160g), 80g cooked green lentils, wilted spinach, garlic, lemon.", kcal:460, protein:46, carbs:28, fat:8 },
+              { label:"🦃 Turkey Meatballs", desc:"Turkey mince (170g) rolled into meatballs with garlic, herbs, egg white. Baked then simmered in passata. 70g wholemeal pasta. Light parmesan (5g).", kcal:480, protein:46, carbs:36, fat:12 },
+              { label:"🐟 Salmon & Sweet Potato", desc:"Salmon fillet (150g) baked with lemon and dill. 70g sweet potato mash. Steamed asparagus. Omega-3 rich — great for recovery from yoga and walking.", kcal:480, protein:40, carbs:26, fat:22 },
+            ]},
+          { time:"9:00 PM", name:"Evening",
+            options:[
+              { label:"Greek Yoghurt", desc:"Low-fat Greek yoghurt (100g) if hungry.", kcal:80, protein:10, carbs:6, fat:1 },
+              { label:"Boiled Egg", desc:"1 boiled egg. Prep it earlier in the day — takes 8 mins and keeps in the fridge.", kcal:70, protein:6, carbs:0, fat:5 },
+              { label:"Turkey Slices", desc:"3 slices wafer-thin turkey breast (60g). Zero prep.", kcal:60, protein:12, carbs:1, fat:1 },
+              { label:"Warm Skimmed Milk", desc:"200ml warm skimmed milk. Tryptophan supports sleep quality — relevant given cortisol management.", kcal:70, protein:7, carbs:10, fat:0 },
+              { label:"Nothing", desc:"If not hungry, skip it. Her daily budget is tighter — not eating is fine.", kcal:0, protein:0, carbs:0, fat:0 },
+            ]},
+        ]},
+      gym: {
+        note:"Weeks 4–6 gym days. More variety in the meals, same calorie and protein targets. Post-workout breakfast first.",
+        meals:[
+          { time:"Post-Gym", name:"Post-Workout Breakfast ★",
+            options:[
+              { label:"Eggs & Avocado Toast", desc:"2 eggs (scrambled or poached) + ¼ avocado on 1 slice wholegrain toast. Green tea.", kcal:300, protein:22, carbs:20, fat:16 },
+              { label:"Omelette & Banana", desc:"2-egg omelette with peppers, onion, spinach. 1 banana.", kcal:310, protein:24, carbs:28, fat:12 },
+              { label:"Yoghurt Parfait", desc:"200g Greek yoghurt + 30g oats + half banana.", kcal:295, protein:22, carbs:36, fat:5 },
+            ]},
+          { time:"10:30", name:"Mid-Morning",
+            options:[
+              { label:"Yoghurt & Banana", desc:"Greek yoghurt (150g) + half banana.", kcal:145, protein:14, carbs:16, fat:2 },
+              { label:"Boiled Egg & Rice Cake", desc:"1 boiled egg + 1 rice cake.", kcal:120, protein:9, carbs:10, fat:5 },
+            ]},
+          { time:"1:00 PM", name:"Lunch",
+            options:[
+              { label:"Chicken Wrap", desc:"Chicken breast (150g) in 1 wholemeal wrap, lettuce, tomato, cucumber, fat-free yoghurt garlic sauce.", kcal:390, protein:40, carbs:30, fat:10 },
+              { label:"Teriyaki Chicken Bowl", desc:"Chicken breast (160g) in low-sugar teriyaki. 60g brown rice. Steamed broccoli.", kcal:380, protein:42, carbs:28, fat:8 },
+              { label:"🥪 Teriyaki Chicken Sandwich", desc:"2 slices wholemeal bread, 130g grilled chicken in a little teriyaki sauce, cucumber, spring onion, lettuce.", kcal:370, protein:38, carbs:32, fat:8 },
+              { label:"🥪 Turkey & Salad Sandwich", desc:"2 slices wholemeal bread, 4 slices turkey breast, lettuce, tomato, cucumber, mustard. Simple and high protein.", kcal:330, protein:34, carbs:30, fat:6 },
+            ]},
+          { time:"4:00 PM", name:"Afternoon",
+            options:[
+              { label:"Boiled Egg & Tomatoes", desc:"1 boiled egg + cherry tomatoes.", kcal:90, protein:8, carbs:4, fat:5 },
+              { label:"Greek Yoghurt", desc:"Greek yoghurt (100g).", kcal:80, protein:10, carbs:6, fat:1 },
+            ]},
+          { time:"7:00 PM", name:"Dinner",
+            options:[
+              { label:"Chicken Traybake", desc:"Skinless chicken thigh (165g), butternut squash (80g), courgette, cherry tomatoes. All roasted together.", kcal:470, protein:42, carbs:24, fat:14 },
+              { label:"Chicken & Lentils", desc:"Chicken breast (160g), 80g cooked green lentils, wilted spinach, garlic, lemon.", kcal:460, protein:46, carbs:26, fat:8 },
+              { label:"🦃 Turkey Mince Stir Fry", desc:"Turkey mince (165g) stir-fried with pak choi, spring onion, garlic, ginger, soy sauce, chilli. 60g brown rice.", kcal:400, protein:44, carbs:28, fat:8 },
+              { label:"🐟 Salmon & Sweet Potato", desc:"Salmon fillet (150g) baked with lemon and dill. 70g sweet potato mash. Steamed asparagus.", kcal:480, protein:40, carbs:24, fat:22 },
+            ]},
+          { time:"9:00 PM", name:"Evening",
+            options:[
+              { label:"Greek Yoghurt", desc:"Low-fat Greek yoghurt (100g) if hungry.", kcal:80, protein:10, carbs:6, fat:1 },
+              { label:"Boiled Egg", desc:"1 boiled egg.", kcal:70, protein:6, carbs:0, fat:5 },
+              { label:"Turkey Slices", desc:"3 slices wafer-thin turkey breast (60g).", kcal:60, protein:12, carbs:1, fat:1 },
+              { label:"Nothing", desc:"If not hungry, skip it.", kcal:0, protein:0, carbs:0, fat:0 },
+            ]},
+        ]},
+
+      rest: {
+        note:"Rest day — 1,476 kcal. Mid-plan. Results are building. Stay sharp on Sundays.",
+        meals:[
+          { time:"8:00 AM", name:"Breakfast",
+            options:[
+              { label:"Poached Eggs & Spinach", desc:"2 poached eggs on wilted spinach. Coffee.", kcal:180, protein:18, carbs:2, fat:10 },
+              { label:"🥓 Bacon & Eggs", desc:"1 grilled medallion bacon rasher + 2 poached eggs + wilted spinach. Final weeks — still a lean choice. Enjoy it.", kcal:260, protein:28, carbs:2, fat:14 },
+              { label:"Scrambled Eggs", desc:"2 scrambled eggs with cherry tomatoes. No toast.", kcal:180, protein:18, carbs:4, fat:10 },
+              { label:"🥓 Bacon & Eggs", desc:"1 grilled medallion bacon rasher + 2 eggs (poached or scrambled) + cherry tomatoes. Weekend treat kept lean.", kcal:260, protein:28, carbs:4, fat:14 },
+            ]},
+          { time:"11:00", name:"Mid-Morning",
+            options:[
+              { label:"Greek Yoghurt", desc:"Greek yoghurt (120g).", kcal:100, protein:12, carbs:6, fat:1 },
+            ]},
+          { time:"1:00 PM", name:"Lunch",
+            options:[
+              { label:"Asian Slaw Chicken", desc:"Cold chicken (155g) over shredded cabbage, carrot, spring onion, coriander. Soy-lime dressing.", kcal:300, protein:38, carbs:8, fat:8 },
+              { label:"Chicken & Tomato Salad", desc:"Chicken (155g), tomatoes, red onion, basil, 1 tsp balsamic.", kcal:290, protein:38, carbs:8, fat:8 },
+              { label:"🥪 Open Egg Sandwich", desc:"1 slice wholemeal bread (open), 2 boiled eggs mashed with fat-free yoghurt, mustard, cress. Lower carbs on rest day.", kcal:280, protein:20, carbs:18, fat:12 },
+            ]},
+          { time:"3:30 PM", name:"Afternoon",
+            options:[
+              { label:"Boiled Egg & Veg", desc:"1 boiled egg + cucumber.", kcal:90, protein:8, carbs:2, fat:5 },
+            ]},
+          { time:"7:00 PM", name:"Dinner",
+            options:[
+              { label:"One-Pan Chicken", desc:"Chicken breast (160g) baked with courgette, cherry tomatoes, garlic, olive oil (1 tsp).", kcal:370, protein:42, carbs:8, fat:10 },
+              { label:"Chicken & Spinach Stew", desc:"Chicken breast (160g) simmered with passata, garlic, spinach, paprika. Simple and warming.", kcal:360, protein:42, carbs:10, fat:8 },
+            ]},
+          { time:"9:00 PM", name:"Evening",
+            options:[
+              { label:"Cottage Cheese", desc:"80g low-fat cottage cheese — only if genuinely hungry.", kcal:80, protein:10, carbs:4, fat:2 },
+              { label:"Boiled Egg", desc:"1 boiled egg.", kcal:70, protein:6, carbs:0, fat:5 },
+              { label:"Greek Yoghurt", desc:"Low-fat Greek yoghurt (80g).", kcal:65, protein:8, carbs:5, fat:1 },
+              { label:"Turkey Slices", desc:"3 slices wafer-thin turkey breast (60g). Zero prep, zero fuss.", kcal:60, protein:12, carbs:1, fat:1 },
+              { label:"Nothing", desc:"If not hungry, skip it.", kcal:0, protein:0, carbs:0, fat:0 },
+            ]},
+        ]},
+    },
+    3: {
+      yoga: {
+        note:"Yoga day — 1,601 kcal. Final block — freshest recipes. You're almost there.",
+        meals:[
+          { time:"7:30 AM", name:"Breakfast",
+            options:[
+              { label:"Shakshuka (Light)", desc:"2 eggs poached in passata with peppers, garlic, cumin, paprika. No bread.", kcal:240, protein:20, carbs:14, fat:12 },
+              { label:"Eggs & Smoked Salmon", desc:"2 scrambled eggs + 50g smoked salmon. Cucumber on the side.", kcal:270, protein:28, carbs:2, fat:14 },
+            ]},
+          { time:"10:30", name:"Mid-Morning",
+            options:[
+              { label:"Yoghurt & Banana", desc:"Greek yoghurt (150g) + half a banana, sliced.", kcal:145, protein:14, carbs:16, fat:2 },
+              { label:"Boiled Egg & Tomatoes", desc:"1 boiled egg + cherry tomatoes.", kcal:90, protein:8, carbs:4, fat:5 },
+            ]},
+          { time:"1:00 PM", name:"Lunch",
+            options:[
+              { label:"Chicken Shawarma Bowl", desc:"Chicken thigh (155g) marinated in cumin, coriander, turmeric, garlic, lemon. 60g rice, salad, yoghurt sauce.", kcal:420, protein:42, carbs:28, fat:14 },
+              { label:"Chicken & Lentil Soup", desc:"Chicken breast (150g) with red lentils (70g cooked), spinach, tomatoes, cumin. Warming and filling.", kcal:400, protein:44, carbs:26, fat:8 },
+              { label:"🥪 Chicken & Herb Sandwich", desc:"2 slices wholemeal bread, 120g chicken breast, fresh mint, parsley, cucumber, tomato, fat-free yoghurt dressing.", kcal:360, protein:34, carbs:30, fat:8 },
+              { label:"🥚 Egg & Smoked Salmon Sandwich", desc:"2 slices wholemeal bread, 1 boiled egg sliced, 40g smoked salmon, cucumber, lemon, black pepper.", kcal:350, protein:28, carbs:28, fat:12 },
+            ]},
+          { time:"4:00 PM", name:"Pre-Yoga",
+            options:[
+              { label:"Boiled Egg & Veg", desc:"1 boiled egg + cucumber + tomatoes.", kcal:100, protein:8, carbs:4, fat:5 },
+            ]},
+          { time:"7:30 PM", name:"Dinner",
+            options:[
+              { label:"Chicken Pesto Bake", desc:"Chicken breast (165g) spread with 1 tsp green pesto + cherry tomatoes. Baked. Side of tenderstem broccoli.", kcal:430, protein:46, carbs:8, fat:16 },
+              { label:"Chicken & Roast Squash", desc:"Chicken breast (165g) baked. Roasted butternut squash (100g), asparagus, garlic.", kcal:440, protein:46, carbs:26, fat:10 },
+              { label:"🥩 Lean Steak & Veg", desc:"Lean sirloin (150g, fat trimmed). Pan-seared, rested 5 mins. Steamed broccoli and green beans. Small jacket potato (100g). Every ~2 weeks — use as a reward in the final stretch.", kcal:460, protein:46, carbs:22, fat:14 },
+              { label:"🐟 Salmon & Asparagus", desc:"Salmon fillet (150g) baked with lemon and dill. Roasted asparagus and cherry tomatoes. Great source of omega-3 to support hormone balance.", kcal:440, protein:38, carbs:6, fat:24 },
+            ]},
+          { time:"9:00 PM", name:"Evening",
+            options:[
+              { label:"Greek Yoghurt", desc:"Low-fat Greek yoghurt (100g) if hungry.", kcal:80, protein:10, carbs:6, fat:1 },
+              { label:"Boiled Egg", desc:"1 boiled egg. Prep it earlier in the day — takes 8 mins and keeps in the fridge.", kcal:70, protein:6, carbs:0, fat:5 },
+              { label:"Turkey Slices", desc:"3 slices wafer-thin turkey breast (60g). Zero prep.", kcal:60, protein:12, carbs:1, fat:1 },
+              { label:"Warm Skimmed Milk", desc:"200ml warm skimmed milk. Tryptophan supports sleep quality — relevant given cortisol management.", kcal:70, protein:7, carbs:10, fat:0 },
+              { label:"Nothing", desc:"If not hungry, skip it. Her daily budget is tighter — not eating is fine.", kcal:0, protein:0, carbs:0, fat:0 },
+            ]},
+        ]},
+      gym: {
+        note:"Final block gym days. Freshest recipes. You're close — keep protein high and finish strong.",
+        meals:[
+          { time:"Post-Gym", name:"Post-Workout Breakfast ★",
+            options:[
+              { label:"Shakshuka (Light)", desc:"2 eggs poached in passata with peppers, garlic, cumin, paprika. No bread.", kcal:240, protein:20, carbs:14, fat:12 },
+              { label:"Eggs & Smoked Salmon", desc:"2 scrambled eggs + 50g smoked salmon. Cucumber on the side.", kcal:270, protein:28, carbs:2, fat:14 },
+              { label:"Omelette & Banana", desc:"2-egg omelette with mushrooms and spinach. 1 banana.", kcal:295, protein:22, carbs:26, fat:12 },
+            ]},
+          { time:"10:30", name:"Mid-Morning",
+            options:[
+              { label:"Yoghurt & Banana", desc:"Greek yoghurt (150g) + half banana.", kcal:145, protein:14, carbs:16, fat:2 },
+              { label:"Boiled Egg & Veg", desc:"1 boiled egg + cucumber + cherry tomatoes.", kcal:100, protein:8, carbs:4, fat:5 },
+            ]},
+          { time:"1:00 PM", name:"Lunch",
+            options:[
+              { label:"Chicken Shawarma Bowl", desc:"Chicken thigh (155g) marinated in cumin, coriander, turmeric, garlic, lemon. 60g rice, salad, yoghurt sauce.", kcal:420, protein:42, carbs:28, fat:14 },
+              { label:"Chicken Caesar (Light)", desc:"Chicken breast (160g), romaine, 1 tbsp low-fat caesar dressing, 5g parmesan.", kcal:360, protein:44, carbs:6, fat:14 },
+              { label:"🥪 Chicken Shawarma Sandwich", desc:"2 slices wholemeal bread, 130g spiced chicken (cumin, paprika, garlic), shredded lettuce, tomato, fat-free garlic yoghurt sauce.", kcal:390, protein:38, carbs:32, fat:10 },
+              { label:"🥪 Smoked Salmon Sandwich", desc:"2 slices wholemeal bread, 60g smoked salmon, fat-free cream cheese (30g), cucumber, lemon. High protein, feels like a treat.", kcal:340, protein:28, carbs:28, fat:10 },
+            ]},
+          { time:"4:00 PM", name:"Afternoon",
+            options:[
+              { label:"Boiled Egg & Tomatoes", desc:"1 boiled egg + cherry tomatoes.", kcal:90, protein:8, carbs:4, fat:5 },
+            ]},
+          { time:"7:00 PM", name:"Dinner",
+            options:[
+              { label:"Chicken Pesto Bake", desc:"Chicken breast (165g) spread with 1 tsp green pesto + cherry tomatoes. Baked. Tenderstem broccoli.", kcal:430, protein:46, carbs:8, fat:16 },
+              { label:"🥩 Lean Steak & Veg", desc:"Lean sirloin (150g, fat trimmed). Pan-seared, rested 5 mins. Steamed broccoli and green beans. Small jacket potato (100g). Every ~2 weeks.", kcal:460, protein:46, carbs:22, fat:14 },
+              { label:"🐟 Salmon & Asparagus", desc:"Salmon fillet (150g) baked with lemon and dill. Roasted asparagus and cherry tomatoes.", kcal:440, protein:38, carbs:6, fat:24 },
+              { label:"🦃 Turkey Bolognese", desc:"Turkey mince (165g) with onion, garlic, carrot, passata, herbs. 70g wholemeal pasta. Light parmesan (5g).", kcal:430, protein:46, carbs:34, fat:10 },
+            ]},
+          { time:"9:00 PM", name:"Evening",
+            options:[
+              { label:"Greek Yoghurt", desc:"Low-fat Greek yoghurt (100g) if hungry.", kcal:80, protein:10, carbs:6, fat:1 },
+              { label:"Boiled Egg", desc:"1 boiled egg.", kcal:70, protein:6, carbs:0, fat:5 },
+              { label:"Turkey Slices", desc:"3 slices wafer-thin turkey breast (60g).", kcal:60, protein:12, carbs:1, fat:1 },
+              { label:"Nothing", desc:"If not hungry, skip it.", kcal:0, protein:0, carbs:0, fat:0 },
+            ]},
+        ]},
+
+      rest: {
+        note:"Rest day — 1,476 kcal. Final rest days. Hold the line — you're days away from your target.",
+        meals:[
+          { time:"8:00 AM", name:"Breakfast",
+            options:[
+              { label:"Poached Eggs & Spinach", desc:"2 poached eggs on wilted spinach. Coffee.", kcal:180, protein:18, carbs:2, fat:10 },
+            ]},
+          { time:"11:00", name:"Mid-Morning",
+            options:[
+              { label:"Greek Yoghurt", desc:"Greek yoghurt (120g).", kcal:100, protein:12, carbs:6, fat:1 },
+            ]},
+          { time:"1:00 PM", name:"Lunch",
+            options:[
+              { label:"Chicken Caesar (Light)", desc:"Chicken (155g), romaine, 1 tbsp low-fat caesar dressing.", kcal:310, protein:38, carbs:4, fat:12 },
+              { label:"Herb Chicken Salad", desc:"Cold chicken (155g), cucumber, mint, parsley, lemon juice.", kcal:290, protein:38, carbs:4, fat:8 },
+              { label:"🥪 Open Chicken Sandwich", desc:"1 slice wholemeal bread, 120g sliced chicken, spinach, cucumber, mustard. Open sandwich keeps carbs lower on rest days.", kcal:280, protein:34, carbs:18, fat:7 },
+            ]},
+          { time:"3:30 PM", name:"Afternoon",
+            options:[
+              { label:"Boiled Egg", desc:"1 boiled egg + cucumber.", kcal:90, protein:8, carbs:2, fat:5 },
+            ]},
+          { time:"7:00 PM", name:"Dinner",
+            options:[
+              { label:"Harissa Chicken", desc:"Chicken breast (160g) with harissa. Roasted peppers and courgette. Fat-free yoghurt.", kcal:370, protein:42, carbs:10, fat:10 },
+              { label:"Chicken Pesto Bake", desc:"Chicken breast (160g) + 1 tsp pesto, cherry tomatoes. Baked. Tenderstem broccoli.", kcal:380, protein:44, carbs:8, fat:14 },
+            ]},
+          { time:"9:00 PM", name:"Evening",
+            options:[
+              { label:"Cottage Cheese", desc:"80g low-fat cottage cheese — only if genuinely hungry.", kcal:80, protein:10, carbs:4, fat:2 },
+              { label:"Boiled Egg", desc:"1 boiled egg.", kcal:70, protein:6, carbs:0, fat:5 },
+              { label:"Greek Yoghurt", desc:"Low-fat Greek yoghurt (80g).", kcal:65, protein:8, carbs:5, fat:1 },
+              { label:"Turkey Slices", desc:"3 slices wafer-thin turkey breast (60g). Zero prep, zero fuss.", kcal:60, protein:12, carbs:1, fat:1 },
+              { label:"Nothing", desc:"If not hungry, skip it.", kcal:0, protein:0, carbs:0, fat:0 },
+            ]},
+        ]},
+    },
+  }
+};
+
+// week number → plan block
+const getBlock = (week) => week <= 3 ? 1 : week <= 6 ? 2 : 3;
+const blockLabel = { 1:"Weeks 1–3", 2:"Weeks 4–6", 3:"Weeks 7–10" };
+
+function MacroBar({ label, val, max, color }) {
+  return (
+    <div style={{ marginBottom: 8 }}>
+      <div style={{ display:"flex", justifyContent:"space-between", fontSize:11, color:C.muted, marginBottom:3 }}>
+        <span>{label}</span><span style={{ fontWeight:"bold", color:C.text }}>{val}g</span>
+      </div>
+      <div style={{ height:5, background:C.border, borderRadius:3, overflow:"hidden" }}>
+        <div style={{ width:`${Math.min(100,(val/max)*100)}%`, height:"100%", background:color, borderRadius:3 }} />
+      </div>
+    </div>
+  );
+}
+
+
+// ── INGREDIENT DATABASE ──────────────────────────────────────────────────────
+// Maps keywords in meal descriptions to shopping list items with category
+const INGREDIENT_MAP = [
+  // Protein
+  { keys:["chicken breast","chicken breasts"], item:"Chicken breasts", cat:"Meat & Fish", unit:"g", base:0 },
+  { keys:["chicken thigh","chicken thighs","skinless chicken thigh"], item:"Chicken thighs (skinless)", cat:"Meat & Fish", unit:"g", base:0 },
+  { keys:["chicken strips","chicken (150g","chicken (130g"], item:"Chicken breast (strips)", cat:"Meat & Fish", unit:"g", base:0 },
+  { keys:["turkey mince","turkey mince ("], item:"Turkey mince", cat:"Meat & Fish", unit:"g", base:0 },
+  { keys:["turkey breast","turkey slices","wafer-thin turkey"], item:"Wafer-thin turkey breast", cat:"Meat & Fish", unit:"pack", base:0 },
+  { keys:["sirloin","rump steak","lean steak"], item:"Lean sirloin/rump steak", cat:"Meat & Fish", unit:"g", base:0 },
+  { keys:["beef mince","lean beef mince"], item:"Extra-lean beef mince (5%)", cat:"Meat & Fish", unit:"g", base:0 },
+  { keys:["salmon fillet","salmon ("], item:"Salmon fillets", cat:"Meat & Fish", unit:"g", base:0 },
+  { keys:["cod fillet","cod ("], item:"Cod or haddock fillets", cat:"Meat & Fish", unit:"g", base:0 },
+  { keys:["smoked salmon"], item:"Smoked salmon", cat:"Meat & Fish", unit:"g", base:0 },
+  { keys:["bacon","medallion bacon","bacon rasher"], item:"Back bacon medallions", cat:"Meat & Fish", unit:"pack", base:0 },
+  // Dairy & Eggs
+  { keys:["greek yoghurt","low-fat greek yoghurt"], item:"Low-fat Greek yoghurt", cat:"Dairy & Eggs", unit:"g", base:0 },
+  { keys:["cottage cheese","low-fat cottage cheese"], item:"Low-fat cottage cheese", cat:"Dairy & Eggs", unit:"g", base:0 },
+  { keys:["skimmed milk","warm skimmed milk"], item:"Skimmed milk", cat:"Dairy & Eggs", unit:"ml", base:0 },
+  { keys:["whole egg","egg white","boiled egg","poached egg","scrambled egg","omelette"], item:"Eggs (free range)", cat:"Dairy & Eggs", unit:"box", base:0 },
+  { keys:["mozzarella","light mozzarella"], item:"Light mozzarella", cat:"Dairy & Eggs", unit:"g", base:0 },
+  { keys:["parmesan"], item:"Parmesan (block)", cat:"Dairy & Eggs", unit:"small", base:0 },
+  { keys:["low-fat cheese","light cheese"], item:"Low-fat cheese", cat:"Dairy & Eggs", unit:"g", base:0 },
+  // Carbs & Grains
+  { keys:["brown rice","cooked brown rice"], item:"Brown rice", cat:"Carbs & Grains", unit:"bag", base:0 },
+  { keys:["wholemeal pasta","pasta"], item:"Wholemeal pasta", cat:"Carbs & Grains", unit:"bag", base:0 },
+  { keys:["rice cake","rice cakes"], item:"Rice cakes", cat:"Carbs & Grains", unit:"pack", base:0 },
+  { keys:["wholemeal pitta","pitta"], item:"Wholemeal pitta breads", cat:"Carbs & Grains", unit:"pack", base:0 },
+  { keys:["wholemeal wrap","wrap"], item:"Wholemeal wraps", cat:"Carbs & Grains", unit:"pack", base:0 },
+  { keys:["wholemeal bun","wholemeal roll"], item:"Wholemeal burger buns", cat:"Carbs & Grains", unit:"pack", base:0 },
+  { keys:["wholegrain toast","wholegrain bread"], item:"Wholegrain bread", cat:"Carbs & Grains", unit:"loaf", base:0 },
+  { keys:["wholemeal bread","wholemeal sandwich"], item:"Wholemeal bread (sliced)", cat:"Carbs & Grains", unit:"loaf", base:0 },
+  { keys:["fat-free cream cheese"], item:"Fat-free cream cheese", cat:"Dairy & Eggs", unit:"tub", base:0 },
+  { keys:["cress"], item:"Cress", cat:"Vegetables", unit:"punnet", base:0 },
+  { keys:["chives"], item:"Chives (fresh or dried)", cat:"Herbs & Spices", unit:"bunch", base:0 },
+  { keys:["oats","rolled oats"], item:"Rolled oats", cat:"Carbs & Grains", unit:"bag", base:0 },
+  { keys:["rice noodles","noodles"], item:"Rice noodles", cat:"Carbs & Grains", unit:"pack", base:0 },
+  { keys:["quinoa"], item:"Quinoa", cat:"Carbs & Grains", unit:"bag", base:0 },
+  { keys:["red lentils","green lentils","lentils"], item:"Lentils (red or green)", cat:"Carbs & Grains", unit:"bag", base:0 },
+  { keys:["kidney beans"], item:"Kidney beans (tin)", cat:"Carbs & Grains", unit:"tin", base:0 },
+  // Veg
+  { keys:["sweet potato","sweet potatoes"], item:"Sweet potatoes", cat:"Vegetables", unit:"kg bag", base:0 },
+  { keys:["maris piper","jacket potato","baby potato"], item:"Potatoes (Maris Piper)", cat:"Vegetables", unit:"kg bag", base:0 },
+  { keys:["broccoli","tenderstem broccoli"], item:"Broccoli / Tenderstem", cat:"Vegetables", unit:"bag", base:0 },
+  { keys:["asparagus"], item:"Asparagus", cat:"Vegetables", unit:"bunch", base:0 },
+  { keys:["courgette"], item:"Courgettes", cat:"Vegetables", unit:"x3", base:0 },
+  { keys:["peppers","red pepper","yellow pepper"], item:"Mixed peppers", cat:"Vegetables", unit:"bag", base:0 },
+  { keys:["cherry tomato","cherry tomatoes"], item:"Cherry tomatoes", cat:"Vegetables", unit:"punnet x2", base:0 },
+  { keys:["spinach","wilted spinach"], item:"Baby spinach", cat:"Vegetables", unit:"bag", base:0 },
+  { keys:["green beans"], item:"Green beans", cat:"Vegetables", unit:"bag", base:0 },
+  { keys:["mushroom","mushrooms"], item:"Mushrooms", cat:"Vegetables", unit:"punnet", base:0 },
+  { keys:["cucumber"], item:"Cucumber", cat:"Vegetables", unit:"x2", base:0 },
+  { keys:["red onion","red onions"], item:"Red onions", cat:"Vegetables", unit:"bag", base:0 },
+  { keys:["onion","white onion"], item:"White onions", cat:"Vegetables", unit:"bag", base:0 },
+  { keys:["spring onion","spring onions"], item:"Spring onions", cat:"Vegetables", unit:"bunch", base:0 },
+  { keys:["pak choi"], item:"Pak choi", cat:"Vegetables", unit:"x2", base:0 },
+  { keys:["celery"], item:"Celery", cat:"Vegetables", unit:"head", base:0 },
+  { keys:["radishes"], item:"Radishes", cat:"Vegetables", unit:"bunch", base:0 },
+  { keys:["butternut squash"], item:"Butternut squash", cat:"Vegetables", unit:"x1", base:0 },
+  { keys:["cabbage","shredded cabbage"], item:"White cabbage", cat:"Vegetables", unit:"x1", base:0 },
+  { keys:["lettuce","romaine","shredded lettuce"], item:"Romaine / iceberg lettuce", cat:"Vegetables", unit:"x1", base:0 },
+  { keys:["carrot","carrots"], item:"Carrots", cat:"Vegetables", unit:"bag", base:0 },
+  { keys:["tomatoes","large tomato"], item:"Tomatoes", cat:"Vegetables", unit:"x4", base:0 },
+  { keys:["avocado"], item:"Avocados", cat:"Vegetables", unit:"x2", base:0 },
+  // Fruit
+  { keys:["banana","bananas"], item:"Bananas", cat:"Fruit", unit:"bunch", base:0 },
+  { keys:["blueberries"], item:"Blueberries", cat:"Fruit", unit:"punnet", base:0 },
+  { keys:["raspberries"], item:"Raspberries", cat:"Fruit", unit:"punnet", base:0 },
+  // Tins, Jars & Sauces
+  { keys:["passata"], item:"Passata (carton)", cat:"Tins & Jars", unit:"x2", base:0 },
+  { keys:["salsa"], item:"Fresh salsa", cat:"Tins & Jars", unit:"jar", base:0 },
+  { keys:["soy sauce"], item:"Low-salt soy sauce", cat:"Tins & Jars", unit:"bottle", base:0 },
+  { keys:["harissa"], item:"Harissa paste", cat:"Tins & Jars", unit:"jar", base:0 },
+  { keys:["green pesto"], item:"Green pesto", cat:"Tins & Jars", unit:"jar", base:0 },
+  { keys:["teriyaki"], item:"Low-sugar teriyaki sauce", cat:"Tins & Jars", unit:"bottle", base:0 },
+  { keys:["worcestershire"], item:"Worcestershire sauce", cat:"Tins & Jars", unit:"bottle", base:0 },
+  { keys:["olives"], item:"Olives (jar)", cat:"Tins & Jars", unit:"jar", base:0 },
+  { keys:["capers"], item:"Capers (jar)", cat:"Tins & Jars", unit:"jar", base:0 },
+  { keys:["mustard"], item:"Mustard", cat:"Tins & Jars", unit:"jar", base:0 },
+  { keys:["panko","breadcrumbs"], item:"Panko breadcrumbs", cat:"Tins & Jars", unit:"bag", base:0 },
+  { keys:["fat-free yoghurt","fat-free sour cream"], item:"Fat-free plain yoghurt", cat:"Dairy & Eggs", unit:"large pot", base:0 },
+  // Oils & Spray
+  { keys:["low-cal spray","spray oil","olive oil spray"], item:"Low-calorie cooking spray", cat:"Oils & Condiments", unit:"x1", base:0 },
+  { keys:["olive oil"], item:"Olive oil", cat:"Oils & Condiments", unit:"bottle", base:0 },
+  { keys:["sesame oil"], item:"Sesame oil (small)", cat:"Oils & Condiments", unit:"bottle", base:0 },
+  { keys:["peanut butter"], item:"Peanut butter (natural)", cat:"Oils & Condiments", unit:"jar", base:0 },
+  { keys:["honey"], item:"Honey", cat:"Oils & Condiments", unit:"jar", base:0 },
+  // Herbs & Spices
+  { keys:["paprika","smoked paprika"], item:"Paprika / Smoked paprika", cat:"Herbs & Spices", unit:"jar", base:0 },
+  { keys:["garlic","garlic powder","garlic cloves"], item:"Garlic (bulbs + powder)", cat:"Herbs & Spices", unit:"x1 each", base:0 },
+  { keys:["cumin"], item:"Cumin (ground)", cat:"Herbs & Spices", unit:"jar", base:0 },
+  { keys:["coriander"], item:"Coriander (ground + fresh)", cat:"Herbs & Spices", unit:"jar + bunch", base:0 },
+  { keys:["turmeric"], item:"Turmeric", cat:"Herbs & Spices", unit:"jar", base:0 },
+  { keys:["chilli","chilli flakes","cayenne"], item:"Chilli flakes / Cayenne pepper", cat:"Herbs & Spices", unit:"jar", base:0 },
+  { keys:["mixed herbs","oregano","thyme","rosemary"], item:"Mixed herbs / Oregano / Thyme", cat:"Herbs & Spices", unit:"jars", base:0 },
+  { keys:["ginger"], item:"Fresh ginger", cat:"Herbs & Spices", unit:"root", base:0 },
+  { keys:["mint","fresh mint"], item:"Fresh mint", cat:"Herbs & Spices", unit:"bunch", base:0 },
+  { keys:["fresh parsley"], item:"Fresh parsley", cat:"Herbs & Spices", unit:"bunch", base:0 },
+  { keys:["dill"], item:"Fresh dill", cat:"Herbs & Spices", unit:"bunch", base:0 },
+  { keys:["chia seeds"], item:"Chia seeds", cat:"Pantry", unit:"bag", base:0 },
+  { keys:["flaxseed"], item:"Flaxseed", cat:"Pantry", unit:"bag", base:0 },
+  { keys:["pumpkin seeds"], item:"Pumpkin seeds", cat:"Pantry", unit:"bag", base:0 },
+  { keys:["lemon","lemon juice"], item:"Lemons", cat:"Fruit", unit:"x4", base:0 },
+  { keys:["lime"], item:"Limes", cat:"Fruit", unit:"x2", base:0 },
+  { keys:["jalapeños"], item:"Jalapeños (jar)", cat:"Tins & Jars", unit:"jar", base:0 },
+  { keys:["mushy peas"], item:"Mushy peas (tin)", cat:"Tins & Jars", unit:"x2 tins", base:0 },
+  { keys:["protein powder","protein shake"], item:"Protein powder", cat:"Pantry", unit:"tub", base:0 },
+];
+
+const CAT_ORDER = ["Meat & Fish","Dairy & Eggs","Vegetables","Fruit","Carbs & Grains","Tins & Jars","Oils & Condiments","Herbs & Spices","Pantry"];
+
+function generateShoppingList(person, week, gymDays, hersDayTypes, selectedOptions, selectedFakeaway) {
+  const block = week <= 3 ? 1 : week <= 6 ? 2 : 3;
+  const getDayType = (d) => {
+    if (person === "his") return d==="Fri" ? "fakeaway" : gymDays.includes(d) ? "gym" : "rest";
+    return d==="Fri" ? "fakeaway" : d==="Sun" ? "rest" : (hersDayTypes[d] || "rest");
+  };
+
+  // Collect all descriptions for the week
+  const allDescs = [];
+
+  ALL_DAYS.forEach(day => {
+    const dayType = getDayType(day);
+    if (dayType === "fakeaway") {
+      // Add fakeaway dinner desc
+      if (selectedFakeaway !== null) {
+        const fa = fakeawayOptions[selectedFakeaway];
+        allDescs.push(person === "his" ? fa.his : fa.hers);
+      } else {
+        // Use first fakeaway as default
+        allDescs.push(person === "his" ? fakeawayOptions[0].his : fakeawayOptions[0].hers);
+      }
+      // Add the light lunch/breakfast for fakeaway day
+      allDescs.push(person === "his" ? "chicken breast salad lemon yoghurt" : "chicken breast eggs salad");
+    } else {
+      const planData = weekPlans[person]?.[block]?.[dayType];
+      if (planData) {
+        planData.meals.forEach((meal, mIdx) => {
+          const optKey = person + "-" + block + "-" + dayType + "-" + mIdx;
+          const optIdx = selectedOptions[optKey] || 0;
+          const opt = meal.options[optIdx];
+          if (opt && opt.desc) allDescs.push(opt.desc.toLowerCase());
+        });
+      }
+    }
+  });
+
+  const combinedText = allDescs.join(" ").toLowerCase();
+
+  // Match ingredients
+  const found = new Set();
+  const list = [];
+
+  INGREDIENT_MAP.forEach(ing => {
+    const matched = ing.keys.some(k => combinedText.includes(k.toLowerCase()));
+    if (matched && !found.has(ing.item)) {
+      found.add(ing.item);
+      list.push({ item: ing.item, cat: ing.cat, unit: ing.unit, checked: false });
+    }
+  });
+
+  // Group by category
+  const grouped = {};
+  CAT_ORDER.forEach(cat => { grouped[cat] = []; });
+  list.forEach(i => {
+    if (!grouped[i.cat]) grouped[i.cat] = [];
+    grouped[i.cat].push(i);
+  });
+
+  return grouped;
+}
+
+export default function App() {
+  // Persist to localStorage
+  const load = (key, def) => { try { const v = localStorage.getItem("mp_"+key); return v ? JSON.parse(v) : def; } catch(e) { return def; } };
+  const save = (key, val) => { try { localStorage.setItem("mp_"+key, JSON.stringify(val)); } catch(e) {} };
+
+  const [person, setPersonRaw] = useState(() => load("person", "his"));
+  const [week, setWeekRaw] = useState(() => load("week", 1));
+  const [gymDays, setGymDaysRaw] = useState(() => load("gymDays", ["Mon","Wed","Sat"]));
+  const [hersDayTypes, setHersDayTypesRaw] = useState(() => load("hersDayTypes", { Mon:"gym", Tue:"rest", Wed:"gym", Thu:"yoga", Sat:"rest" }));
+  const [hersPostWorkoutMeal, setHersPostWorkoutMealRaw] = useState(() => load("hersPostWorkoutMeal", "breakfast"));
+  const [selectedDay, setSelectedDay] = useState("Mon");
+  const [expandedMeal, setExpandedMeal] = useState(null);
+  const [selectedOptions, setSelectedOptionsRaw] = useState(() => load("selectedOptions", {}));
+  const [view, setView] = useState("plan");
+  const [expandedFakeaway, setExpandedFakeaway] = useState(null);
+  const [selectedFakeaway, setSelectedFakewayRaw] = useState(() => load("selectedFakeaway", null));
+  const [showShoppingList, setShowShoppingList] = useState(false);
+  const [checkedItems, setCheckedItemsRaw] = useState(() => load("checkedItems", {}));
+  const [shoppingMode, setShoppingMode] = useState("his");
+
+  // Persisted setters
+  const setPerson = v => { setPersonRaw(v); save("person", v); };
+  const setWeek = v => { setWeekRaw(v); save("week", v); };
+  const setGymDays = fn => setGymDaysRaw(prev => { const n = typeof fn==="function"?fn(prev):fn; save("gymDays",n); return n; });
+  const setHersDayTypes = fn => setHersDayTypesRaw(prev => { const n = typeof fn==="function"?fn(prev):fn; save("hersDayTypes",n); return n; });
+  const setHersPostWorkoutMeal = v => { setHersPostWorkoutMealRaw(v); save("hersPostWorkoutMeal", v); };
+  const setSelectedOptions = fn => setSelectedOptionsRaw(prev => { const n = typeof fn==="function"?fn(prev):fn; save("selectedOptions",n); return n; });
+  const setSelectedFakeaway = v => { setSelectedFakewayRaw(v); save("selectedFakeaway", v); };
+  const setCheckedItems = fn => setCheckedItemsRaw(prev => { const n = typeof fn==="function"?fn(prev):fn; save("checkedItems",n); return n; })
+
+  const block = getBlock(week);
+
+  const getDayTypeHis = (d) => d==="Fri" ? "fakeaway" : gymDays.includes(d) ? "gym" : "rest";
+  const getDayTypeHers = (d) => d==="Fri" ? "fakeaway" : d==="Sun" ? "rest" : (hersDayTypes[d] || "rest");
+  const toggleHersDay = (d) => {
+    if(d==="Sun") return;
+    setHersDayTypes(prev => { const cur=prev[d]||"rest"; const next=cur==="rest"?"gym":cur==="gym"?"yoga":"rest"; return {...prev,[d]:next}; });
+  };
+  const getDayType = (d) => person==="his" ? getDayTypeHis(d) : getDayTypeHers(d);
+
+  const currentType = getDayType(selectedDay);
+  const accentColor = person==="his" ? C.his : C.hers;
+  const typeColor = typeColors[currentType];
+
+  const planData = currentType !== "fakeaway"
+    ? (weekPlans[person]?.[block]?.[currentType] || null)
+    : null;
+
+  const getOptionIdx = (mealIdx) => selectedOptions[`${person}-${block}-${currentType}-${mealIdx}`] || 0;
+  const setOptionIdx = (mealIdx, idx) => setSelectedOptions(prev => ({ ...prev, [`${person}-${block}-${currentType}-${mealIdx}`]: idx }));
+
+  const toggleGymDay = (d) => {
+    if (d==="Sun") return;
+    setGymDays(prev => prev.includes(d) ? prev.filter(x=>x!==d) : [...prev,d]);
+  };
+
+  return (
+    <div style={{ minHeight:"100vh", background:C.bg, fontFamily:"'Georgia','Times New Roman',serif", maxWidth:480, margin:"0 auto" }}>
+
+      {/* HEADER */}
+      <div style={{ background:"#fff", borderBottom:`1px solid ${C.border}`, padding:"22px 18px 14px" }}>
+        <div style={{ fontSize:10, letterSpacing:4, color:C.faint, textTransform:"uppercase", marginBottom:5 }}>10-Week Fat Loss Plan</div>
+        <h1 style={{ margin:"0 0 12px", fontSize:21, fontWeight:"normal", color:C.text }}>Meal Plan</h1>
+
+        {/* Person toggle */}
+        <div style={{ display:"flex", background:C.bg, border:`1px solid ${C.border}`, borderRadius:10, padding:3, gap:3, marginBottom:12 }}>
+          {["his","hers"].map(p=>(
+            <button key={p} onClick={()=>{setPerson(p);setExpandedMeal(null);setView("plan");setSelectedDay(p==="his"?"Mon":"Mon");}} style={{
+              flex:1, padding:"9px 0", borderRadius:7, border:"none",
+              background:person===p?(p==="his"?C.his:C.hers):"transparent",
+              color:person===p?"#fff":C.muted, cursor:"pointer", fontSize:13,
+              fontFamily:"inherit", fontWeight:person===p?"bold":"normal", transition:"all 0.2s",
+            }}>
+              {p==="his"?"👨 His":"👩 Hers"}
+            </button>
+          ))}
+        </div>
+
+        {/* Week selector */}
+        <div style={{ marginBottom:12 }}>
+          <div style={{ fontSize:11, letterSpacing:2, color:C.faint, textTransform:"uppercase", marginBottom:6 }}>
+            Week {week} of 10 · {blockLabel[block]}
+          </div>
+          <div style={{ display:"flex", gap:4, flexWrap:"wrap" }}>
+            {Array.from({length:10},(_,i)=>i+1).map(w=>(
+              <button key={w} onClick={()=>{setWeek(w);setExpandedMeal(null);}} style={{
+                padding:"5px 0", width:38, borderRadius:6, border:`1px solid ${week===w?accentColor:C.border}`,
+                background:week===w?`${accentColor}15`:"transparent",
+                color:week===w?accentColor:C.muted, cursor:"pointer", fontSize:12,
+                fontFamily:"inherit", fontWeight:week===w?"bold":"normal", transition:"all 0.15s",
+              }}>
+                {w}
+              </button>
+            ))}
+          </div>
+          <div style={{ fontSize:11, color:C.faint, marginTop:5, fontStyle:"italic" }}>
+            {block===1?"Foundation — build the habit.":block===2?"Building — adding variety, same targets.":"Final stretch — fresh recipes, finish strong."}
+          </div>
+        </div>
+
+        {/* Gym day picker — HIS only */}
+        {person==="his" && (
+          <div style={{ padding:"10px 12px", background:"#eff6ff", border:"1px solid #bfdbfe", borderRadius:10 }}>
+            <div style={{ fontSize:10, letterSpacing:2, color:C.his, textTransform:"uppercase", marginBottom:6 }}>Set your gym days</div>
+            <div style={{ display:"flex", gap:4 }}>
+              {ALL_DAYS.map(d=>{
+                const isSun=d==="Sun", isFri=d==="Fri";
+                const isGym=gymDays.includes(d);
+                const isFriGym=isFri&&isGym;
+                const bg = isSun?"#f9f7f4":isFriGym?"#fff7ed":isGym?C.gym:"#fff";
+                const bc = isSun?C.border:isFriGym?"#fb923c":isGym?C.gym:C.border;
+                const col = isSun?C.faint:isFriGym?"#ea580c":isGym?"#fff":C.muted;
+                const emoji = isSun?"🛋️":isFriGym?"🏋️🍟":isFri?"🍟":isGym?"🏋️":"🛋️";
+                return (
+                  <button key={d} onClick={()=>toggleGymDay(d)} style={{
+                    flex:1, padding:"6px 0", borderRadius:6,
+                    border:`1px solid ${bc}`, background:bg, color:col,
+                    cursor:isSun?"default":"pointer", fontSize:9, fontWeight:"bold",
+                    fontFamily:"inherit", transition:"all 0.15s", textAlign:"center",
+                  }}>
+                    {d}<br/><span style={{fontSize:10}}>{emoji}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+        {person==="hers" && (
+          <div style={{ padding:"10px 12px", background:"#fdf2f8", border:"1px solid #fbcfe8", borderRadius:10 }}>
+            <div style={{ fontSize:10, letterSpacing:2, color:C.hers, textTransform:"uppercase", marginBottom:4 }}>Tap to cycle: 🏋️ Gym → 🧘 Yoga → 🛋️ Rest</div>
+            <div style={{ display:"flex", gap:4 }}>
+              {ALL_DAYS.map(d=>{
+                const isSun=d==="Sun", isFri=d==="Fri";
+                const t = getDayTypeHers(d);
+                const isFriGym=isFri&&(hersDayTypes["Fri"]==="gym");
+                const isFriYoga=isFri&&(hersDayTypes["Fri"]==="yoga");
+                const bg = isSun?"#f9f7f4":isFriGym?"#fff7ed":isFriYoga?"#fdf2f8":t==="gym"?C.gym:t==="yoga"?C.hers:"#fff";
+                const bc = isSun?C.border:isFriGym?"#fb923c":isFriYoga?"#fbcfe8":t==="gym"?C.gym:t==="yoga"?"#fbcfe8":C.border;
+                const col = isSun?C.faint:isFriGym?"#ea580c":isFriYoga?C.hers:(t==="gym"||t==="yoga")?"#fff":C.muted;
+                const emoji = isSun?"🛋️":isFriGym?"🏋️🍟":isFriYoga?"🧘🍟":isFri?"🍟":t==="gym"?"🏋️":t==="yoga"?"🧘":"🛋️";
+                return (
+                  <button key={d} onClick={()=>toggleHersDay(d)} style={{
+                    flex:1, padding:"6px 0", borderRadius:6,
+                    border:`1px solid ${bc}`, background:bg, color:col,
+                    cursor:isSun?"default":"pointer", fontSize:9, fontWeight:"bold",
+                    fontFamily:"inherit", transition:"all 0.15s", textAlign:"center",
+                  }}>
+                    {d}<br/><span style={{fontSize:10}}>{emoji}</span>
+                  </button>
+                );
+              })}
+            </div>
+            <div style={{ fontSize:10, color:"#9d174d", marginTop:6 }}>
+              {Object.values(hersDayTypes).filter(v=>v==="gym").length} gym · {Object.values(hersDayTypes).filter(v=>v==="yoga").length} yoga · Sun always rest · Fri fakeaway
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* DAY STRIP */}
+      <div style={{ background:"#fff", borderBottom:`1px solid ${C.border}`, display:"flex", padding:"8px 10px", gap:4, overflowX:"auto" }}>
+        {ALL_DAYS.map(d=>{
+          const t=getDayType(d), tc=typeColors[t], isSel=selectedDay===d;
+          return (
+            <button key={d} onClick={()=>{setSelectedDay(d);setExpandedMeal(null);setView("plan");}} style={{
+              flex:"0 0 auto", padding:"7px 9px", borderRadius:8, minWidth:40,
+              border:`1px solid ${isSel?tc:C.border}`,
+              background:isSel?`${tc}12`:"transparent",
+              color:isSel?tc:C.muted, cursor:"pointer", fontSize:10,
+              fontFamily:"inherit", fontWeight:isSel?"bold":"normal",
+              textAlign:"center", transition:"all 0.15s",
+            }}>
+              <div>{d}</div><div style={{fontSize:13,marginTop:1}}>{typeEmojis[t]}</div>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* DAY HEADER */}
+      <div style={{ background:"#fff", borderBottom:`1px solid ${C.border}`, padding:"11px 16px", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+        <div>
+          <div style={{ fontSize:15, color:typeColor, fontWeight:"bold" }}>
+            {typeEmojis[currentType]} {DAY_FULL[selectedDay]} — {typeLabels[currentType]}
+          </div>
+          <div style={{ fontSize:11, color:C.faint, marginTop:1 }}>
+            Week {week} · {blockLabel[block]}
+            {currentType==="gym"&&person==="his"&&" · morning training"}
+          </div>
+        </div>
+        {currentType!=="fakeaway" && (
+          <button onClick={()=>setView(view==="mfp"?"plan":"mfp")} style={{
+            padding:"5px 10px", borderRadius:7,
+            border:`1px solid ${view==="mfp"?accentColor:C.border}`,
+            background:view==="mfp"?accentColor:"transparent",
+            color:view==="mfp"?"#fff":C.muted,
+            cursor:"pointer", fontSize:11, fontFamily:"inherit", fontWeight:"bold",
+          }}>MFP</button>
+        )}
+      </div>
+
+      {/* FAKEAWAY VIEW */}
+      {currentType==="fakeaway" && (
+        <div style={{ padding:"14px" }}>
+
+          {/* If Friday is also a gym day — show post-workout note */}
+          {((person==="his" && gymDays.includes("Fri")) || (person==="hers" && (hersDayTypes["Fri"]==="gym"||hersDayTypes["Fri"]==="yoga"))) && (
+            <div style={{ background:"#f0fdf4", border:"1px solid #bbf7d0", borderLeft:"3px solid #16a34a", borderRadius:"0 8px 8px 0", padding:"10px 14px", marginBottom:10, fontSize:12, color:"#166534", lineHeight:1.6, fontStyle:"italic" }}>
+              🏋️ You're training this morning — post-workout breakfast is your first meal. Protein in within 30 mins of finishing. Lunch stays light to save room for tonight.
+            </div>
+          )}
+
+          <div style={{ background:"#fff7ed", border:"1px solid #fed7aa", borderLeft:"3px solid #ea580c", borderRadius:"0 8px 8px 0", padding:"10px 14px", marginBottom:14, fontSize:13, color:"#7c2d12", lineHeight:1.6, fontStyle:"italic" }}>
+            Pick your fakeaway for this Friday. Keep lunch light. All options are built into the week's calorie plan.
+          </div>
+
+          {/* Fakeaway prep meals — post-workout breakfast if training Friday */}
+          {(()=>{
+            const isFriGymHis = person==="his" && gymDays.includes("Fri");
+            const isFriGymHers = person==="hers" && (hersDayTypes["Fri"]==="gym"||hersDayTypes["Fri"]==="yoga");
+            const isFriGym = isFriGymHis || isFriGymHers;
+            const hisMeals = isFriGymHis ? [
+              { time:"Post-Gym", name:"Post-Workout Breakfast ★", kcal:310, options:true, desc:"Low-fat Greek yoghurt (250g) + 1 banana + 1 tsp chia seeds. Get protein in within 30 mins. — OR — 🌙 Overnight oats (prep night before): 60g oats + 200ml skimmed milk + 1 scoop protein + banana." },
+              { time:"1:00 PM", name:"Lunch — Keep Light", kcal:280, desc:"Chicken breast (150g) with large green salad. Lemon juice only. No rice, no bread." },
+              { time:"3:30 PM", name:"Afternoon", kcal:80, desc:"80g low-fat cottage cheese or Greek yoghurt. Hold the line." },
+            ] : [
+              { time:"8:00 AM", name:"Breakfast", kcal:180, desc:"Low-fat Greek yoghurt (200g). Black coffee." },
+              { time:"1:00 PM", name:"Lunch — Keep Light", kcal:280, desc:"Chicken breast (150g) with large green salad. Lemon juice only." },
+              { time:"3:30 PM", name:"Afternoon", kcal:80, desc:"80g low-fat cottage cheese." },
+            ];
+            const hersMeals = isFriGymHers ? [
+              { time:"Post-Gym", name:"Post-Workout Breakfast ★", kcal:280, desc:"2 scrambled eggs + spinach + half banana. Protein in within 30 mins of finishing." },
+              { time:"1:00 PM", name:"Lunch — Keep Light", kcal:240, desc:"Chicken breast (140g) with green salad and lemon juice. Nothing else." },
+              { time:"3:30 PM", name:"Afternoon", kcal:80, desc:"Greek yoghurt (100g). Hold here." },
+            ] : [
+              { time:"8:00 AM", name:"Breakfast", kcal:190, desc:"2 scrambled eggs with spinach. Black coffee." },
+              { time:"1:00 PM", name:"Lunch — Keep Light", kcal:240, desc:"Chicken breast (140g) with green salad and lemon juice." },
+              { time:"3:30 PM", name:"Afternoon", kcal:80, desc:"Greek yoghurt (100g)." },
+            ];
+            const meals = person==="his" ? hisMeals : hersMeals;
+            return meals.map((m,i)=>(
+              <div key={i} style={{ background:"#fff", border:`1px solid ${isFriGym && i===0 ? C.gym : C.border}`, borderRadius:9, padding:"10px 14px", marginBottom:8 }}>
+                <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start" }}>
+                  <div style={{ flex:1 }}>
+                    <div style={{ fontSize:12, color:isFriGym && i===0 ? C.gym : C.faint, marginBottom:2 }}>{m.time}</div>
+                    <div style={{ fontSize:13, color:C.text, fontWeight:"bold", marginBottom:4 }}>{m.name}</div>
+                    <div style={{ fontSize:12, color:C.muted, lineHeight:1.6 }}>{m.desc}</div>
+                  </div>
+                  <div style={{ fontSize:13, color:C.fakeaway, fontWeight:"bold", flexShrink:0, marginLeft:8 }}>{m.kcal} kcal</div>
+                </div>
+              </div>
+            ));
+          })()}
+
+          <div style={{ fontSize:11, letterSpacing:2, color:C.faint, textTransform:"uppercase", margin:"14px 0 8px" }}>Choose Your Fakeaway Dinner</div>
+
+          {fakeawayOptions.map((fa,i)=>{
+            const isOpen=expandedFakeaway===i;
+            const isSel=selectedFakeaway===i;
+            return (
+              <div key={fa.id} style={{ marginBottom:8, background:"#fff", border:`2px solid ${isSel?C.fakeaway:isOpen?"#fed7aa":C.border}`, borderRadius:10, overflow:"hidden", cursor:"pointer" }}>
+                <div onClick={()=>setExpandedFakeaway(isOpen?null:i)} style={{ display:"flex", alignItems:"center", padding:"12px 14px", gap:10 }}>
+                  <div style={{ flex:1 }}>
+                    <div style={{ fontSize:14, color:C.text, fontWeight:"bold" }}>{fa.name}</div>
+                    <div style={{ fontSize:11, color:C.faint, marginTop:2 }}>{fa.kcal} kcal · {fa.protein}g protein</div>
+                  </div>
+                  <div style={{ display:"flex", gap:6, alignItems:"center" }}>
+                    {isSel && <span style={{ fontSize:11, color:C.fakeaway, fontWeight:"bold" }}>✓ Selected</span>}
+                    <span style={{ color:C.faint, fontSize:11 }}>{isOpen?"▲":"▼"}</span>
+                  </div>
+                </div>
+                {isOpen && (
+                  <div style={{ padding:"0 14px 14px", borderTop:`1px solid ${C.border}` }}>
+                    <p style={{ margin:"10px 0 8px", fontSize:13, color:"#333", lineHeight:1.7 }}>
+                      {person==="his" ? fa.his : fa.hers}
+                    </p>
+                    <div style={{ display:"flex", gap:6, flexWrap:"wrap", marginBottom:10 }}>
+                      {[{l:`${fa.kcal} kcal`,c:C.fakeaway},{l:`${fa.protein}g protein`,c:C.gym},{l:`${fa.carbs}g carbs`,c:"#ea580c"},{l:`${fa.fat}g fat`,c:"#7c3aed"}].map((t,j)=>(
+                        <span key={j} style={{ fontSize:10, padding:"2px 8px", borderRadius:20, background:`${t.c}12`, color:t.c, border:`1px solid ${t.c}30` }}>{t.l}</span>
+                      ))}
+                    </div>
+                    <div style={{ background:"#f9f7f4", borderRadius:8, padding:"8px 12px", fontSize:12, color:C.muted, lineHeight:1.6, fontStyle:"italic", marginBottom:10 }}>
+                      💡 {fa.tip}
+                    </div>
+                    <button onClick={()=>setSelectedFakeaway(isSel?null:i)} style={{
+                      width:"100%", padding:"9px", borderRadius:8,
+                      border:`1px solid ${isSel?C.border:C.fakeaway}`,
+                      background:isSel?"transparent":C.fakeaway,
+                      color:isSel?C.muted:"#fff",
+                      cursor:"pointer", fontSize:13, fontFamily:"inherit", fontWeight:"bold",
+                    }}>
+                      {isSel?"Remove Selection":"Choose This Fakeaway"}
+                    </button>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* MFP VIEW */}
+      {view==="mfp" && currentType!=="fakeaway" && planData && (
+        <div style={{ padding:"14px" }}>
+          {(() => {
+            const totals = planData.meals.reduce((acc,m)=>{
+              const opt = m.options[getOptionIdx(planData.meals.indexOf(m))];
+              return { kcal:acc.kcal+(opt?.kcal||0), protein:acc.protein+(opt?.protein||0), carbs:acc.carbs+(opt?.carbs||0), fat:acc.fat+(opt?.fat||0) };
+            }, {kcal:0,protein:0,carbs:0,fat:0});
+            return (
+              <>
+                <div style={{ background:"#fff", border:`1px solid ${C.border}`, borderRadius:12, padding:"14px 16px", marginBottom:12 }}>
+                  <div style={{ fontSize:11, letterSpacing:2, color:C.faint, textTransform:"uppercase", marginBottom:12 }}>Daily Totals for MFP</div>
+                  <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8, marginBottom:14 }}>
+                    {[{l:"Calories",v:totals.kcal,u:"kcal",c:accentColor},{l:"Protein",v:totals.protein,u:"g",c:C.gym},{l:"Carbs",v:totals.carbs,u:"g",c:"#ea580c"},{l:"Fat",v:totals.fat,u:"g",c:"#7c3aed"}].map((s,i)=>(
+                      <div key={i} style={{ background:C.bg, border:`1px solid ${C.border}`, borderRadius:8, padding:"8px 10px", textAlign:"center" }}>
+                        <div style={{ fontSize:18, fontWeight:"bold", color:s.c }}>{s.v}<span style={{fontSize:11}}>{s.u}</span></div>
+                        <div style={{ fontSize:10, color:C.faint, textTransform:"uppercase", letterSpacing:1, marginTop:1 }}>{s.l}</div>
+                      </div>
+                    ))}
+                  </div>
+                  <MacroBar label="Protein" val={totals.protein} max={200} color={C.gym} />
+                  <MacroBar label="Carbohydrates" val={totals.carbs} max={220} color="#ea580c" />
+                  <MacroBar label="Fat" val={totals.fat} max={80} color="#7c3aed" />
+                </div>
+                <div style={{ fontSize:11, letterSpacing:2, color:C.faint, textTransform:"uppercase", marginBottom:8 }}>Meal Breakdown</div>
+                {planData.meals.map((m,i)=>{
+                  const opt=m.options[getOptionIdx(i)];
+                  return (
+                    <div key={i} style={{ background:"#fff", border:`1px solid ${C.border}`, borderRadius:9, padding:"10px 14px", marginBottom:8 }}>
+                      <div style={{ display:"flex", justifyContent:"space-between", marginBottom:6 }}>
+                        <div style={{ fontSize:12, color:C.text, fontWeight:"bold" }}>{m.name}</div>
+                        <div style={{ fontSize:12, color:accentColor, fontWeight:"bold" }}>{opt?.kcal} kcal</div>
+                      </div>
+                      <div style={{ fontSize:11, color:C.muted, marginBottom:6 }}>{opt?.label}</div>
+                      <div style={{ display:"flex", gap:5, flexWrap:"wrap" }}>
+                        {[{l:`${opt?.protein}g protein`,c:C.gym},{l:`${opt?.carbs}g carbs`,c:"#ea580c"},{l:`${opt?.fat}g fat`,c:"#7c3aed"}].map((t,j)=>(
+                          <span key={j} style={{ fontSize:10, padding:"2px 7px", borderRadius:20, background:`${t.c}12`, color:t.c, border:`1px solid ${t.c}30` }}>{t.l}</span>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+                <div style={{ background:"#fffbeb", border:"1px solid #fde68a", borderRadius:10, padding:"10px 14px", marginTop:4 }}>
+                  <div style={{ fontSize:12, color:"#92400e", lineHeight:1.6 }}>
+                    <strong>MFP tip:</strong> These totals reflect your currently selected meal options. If you swap an option, the totals update. Set your MFP daily goal to match then log each meal by name.
+                  </div>
+                </div>
+              </>
+            );
+          })()}
+        </div>
+      )}
+
+      {/* PLAN VIEW */}
+      {view==="plan" && currentType!=="fakeaway" && planData && (
+        <div style={{ padding:"10px 14px 20px" }}>
+          {currentType==="gym" && person==="his" && (
+            <div style={{ background:"#f0fdf4", border:"1px solid #bbf7d0", borderLeft:"3px solid #16a34a", borderRadius:"0 8px 8px 0", padding:"9px 12px", marginBottom:10, fontSize:12, color:"#166534", lineHeight:1.6, fontStyle:"italic" }}>
+              Training fasted — post-workout breakfast is your first meal. Protein in within 30 mins of finishing.
+            </div>
+          )}
+          {currentType==="gym" && person==="hers" && (
+            <div style={{ marginBottom:12 }}>
+              <div style={{ background:"#fdf2f8", border:"1px solid #fbcfe8", borderLeft:"3px solid #db2777", borderRadius:"0 8px 8px 0", padding:"9px 12px", marginBottom:8, fontSize:12, color:"#831843", lineHeight:1.6, fontStyle:"italic" }}>
+                🏋️ Select when you're training today — the ★ post-workout meal moves to that slot.
+              </div>
+              <div style={{ display:"flex", background:C.bg, border:`1px solid ${C.border}`, borderRadius:10, padding:3, gap:3 }}>
+                {[{id:"breakfast",label:"🌅 Morning"},{id:"lunch",label:"☀️ Lunchtime"},{id:"dinner",label:"🌙 Evening"}].map(opt=>(
+                  <button key={opt.id} onClick={()=>setHersPostWorkoutMeal(opt.id)} style={{
+                    flex:1, padding:"8px 4px", borderRadius:7, border:"none",
+                    background:hersPostWorkoutMeal===opt.id?C.hers:"transparent",
+                    color:hersPostWorkoutMeal===opt.id?"#fff":C.muted,
+                    cursor:"pointer", fontSize:11, fontFamily:"inherit",
+                    fontWeight:hersPostWorkoutMeal===opt.id?"bold":"normal", transition:"all 0.2s",
+                  }}>{opt.label}</button>
+                ))}
+              </div>
+            </div>
+          )}
+          <div style={{ background:`${typeColor}08`, border:`1px solid ${typeColor}30`, borderRadius:8, padding:"8px 12px", marginBottom:10, fontSize:12, color:C.muted, lineHeight:1.5, fontStyle:"italic" }}>
+            {planData.note}
+          </div>
+
+          {(()=>{
+            // For hers gym days: post-workout meal REPLACES the corresponding meal slot
+            let displayMeals = planData.meals;
+            if(person==="hers" && currentType==="gym") {
+              const pwIdx = planData.meals.findIndex(m=>m.name.includes("★"));
+              if(pwIdx > -1) {
+                const pwMeal = planData.meals[pwIdx];
+                if(hersPostWorkoutMeal==="breakfast") {
+                  // Replace breakfast slot (first meal) with post-workout meal
+                  const withoutPW = planData.meals.filter((_,i)=>i!==pwIdx);
+                  displayMeals = [pwMeal, ...withoutPW];
+                } else if(hersPostWorkoutMeal==="lunch") {
+                  // Replace the Lunch slot with post-workout meal, remove original PW position
+                  const withoutPW = planData.meals.filter((_,i)=>i!==pwIdx);
+                  displayMeals = withoutPW.map(m => m.name==="Lunch" ? {...pwMeal, name:"Post-Workout Lunch ★"} : m);
+                } else {
+                  // Replace the Dinner slot with post-workout meal, remove original PW position
+                  const withoutPW = planData.meals.filter((_,i)=>i!==pwIdx);
+                  displayMeals = withoutPW.map(m => m.name==="Dinner" ? {...pwMeal, name:"Post-Workout Dinner ★"} : m);
+                }
+              }
+            }
+            return displayMeals;
+          })().map((m,mIdx)=>{
+            const origIdx=planData.meals.indexOf(m);
+            const isOpen=expandedMeal===origIdx;
+            const optIdx=getOptionIdx(origIdx);
+            const selectedOpt=m.options[optIdx];
+            return (
+              <div key={mIdx} style={{ marginBottom:8, background:"#fff", border:`1px solid ${isOpen?typeColor:C.border}`, borderRadius:10, overflow:"hidden", boxShadow:isOpen?`0 2px 10px ${typeColor}18`:"none", transition:"all 0.15s" }}>
+                {/* Row header */}
+                <div onClick={()=>setExpandedMeal(isOpen?null:origIdx)} style={{ display:"flex", alignItems:"center", padding:"11px 13px", gap:10, cursor:"pointer" }}>
+                  <div style={{ fontSize:10, minWidth:46, textAlign:"center",
+                    color: (person==="hers" && m.name.includes("★") && hersPostWorkoutMeal!=="breakfast") ? C.hers : C.faint,
+                  }}>
+                    {person==="hers" && m.name.includes("★") && hersPostWorkoutMeal==="lunch" ? "Post-Gym" :
+                     person==="hers" && m.name.includes("★") && hersPostWorkoutMeal==="dinner" ? "Post-Gym" :
+                     m.time}
+                  </div>
+                  <div style={{ flex:1, overflow:"hidden" }}>
+                    <div style={{ fontSize:13, color:C.text, fontWeight:isOpen?"bold":"normal" }}>{m.name}</div>
+                    <div style={{ fontSize:11, color:C.faint, marginTop:1, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>
+                      {selectedOpt?.label} · {selectedOpt?.kcal} kcal
+                    </div>
+                  </div>
+                  {m.options.length > 1 && (
+                    <div style={{ fontSize:10, color:typeColor, background:`${typeColor}12`, border:`1px solid ${typeColor}30`, borderRadius:12, padding:"2px 6px", flexShrink:0 }}>
+                      {m.options.length} options
+                    </div>
+                  )}
+                  <div style={{ color:C.faint, fontSize:10 }}>{isOpen?"▲":"▼"}</div>
+                </div>
+
+                {/* Expanded */}
+                {isOpen && (
+                  <div style={{ borderTop:`1px solid ${C.border}` }}>
+                    {/* Option tabs */}
+                    {m.options.length > 1 && (
+                      <div style={{ display:"flex", gap:4, padding:"10px 13px 0", flexWrap:"wrap" }}>
+                        {(()=>{
+                          // For hers post-workout at lunch/dinner, show meal-appropriate options
+                          let opts = m.options;
+                          if(person==="hers" && m.name.includes("★") && hersPostWorkoutMeal==="lunch") {
+                            opts = [
+                              { label:"Chicken & Rice", desc:"Grilled chicken breast (160g), 70g brown rice, steamed broccoli. Classic post-workout recovery meal.", kcal:400, protein:42, carbs:28, fat:8 },
+                              { label:"Chicken & Quinoa", desc:"Grilled chicken (160g), 70g quinoa, roasted peppers, cucumber, lemon dressing.", kcal:390, protein:42, carbs:26, fat:10 },
+                              { label:"🥪 Chicken Sandwich", desc:"2 slices wholemeal bread, 150g chicken breast, lettuce, tomato, mustard. Quick post-workout lunch.", kcal:370, protein:38, carbs:32, fat:8 },
+                            ];
+                          } else if(person==="hers" && m.name.includes("★") && hersPostWorkoutMeal==="dinner") {
+                            opts = [
+                              { label:"Chicken & Sweet Potato", desc:"Baked chicken breast (170g) with roasted courgette and cherry tomatoes. 80g sweet potato mash. Higher carbs post-training.", kcal:490, protein:46, carbs:28, fat:12 },
+                              { label:"Chicken Thigh Traybake", desc:"Skinless chicken thigh (165g) with butternut squash (80g), courgette, peppers. All roasted together.", kcal:470, protein:42, carbs:26, fat:14 },
+                              { label:"🦃 Turkey Bolognese", desc:"Turkey mince (165g) with onion, garlic, passata, herbs. 70g wholemeal pasta. Good post-evening-session carb refuel.", kcal:430, protein:46, carbs:34, fat:10 },
+                              { label:"🐟 Salmon & Sweet Potato", desc:"Salmon fillet (150g) baked with lemon and dill. 70g sweet potato mash. Omega-3 supports muscle recovery.", kcal:480, protein:40, carbs:24, fat:22 },
+                            ];
+                          }
+                          return opts.map((opt,oIdx)=>(
+                            <button key={oIdx} onClick={()=>setOptionIdx(origIdx,oIdx)} style={{
+                              padding:"5px 10px", borderRadius:20, fontSize:11,
+                              border:`1px solid ${optIdx===oIdx?typeColor:C.border}`,
+                              background:optIdx===oIdx?`${typeColor}15`:"transparent",
+                              color:optIdx===oIdx?typeColor:C.muted,
+                              cursor:"pointer", fontFamily:"inherit", fontWeight:optIdx===oIdx?"bold":"normal",
+                              display:"flex", alignItems:"center", gap:4,
+                            }}>
+                              {opt.label}
+                              {opt.label.includes("🥩")&&<span style={{fontSize:9,background:"#fef2f2",color:"#dc2626",borderRadius:10,padding:"1px 5px",border:"1px solid #fecaca"}}>2-weekly</span>}
+                              {opt.label.includes("🦃")&&<span style={{fontSize:9,background:"#faf5ff",color:"#7c3aed",borderRadius:10,padding:"1px 5px",border:"1px solid #e9d5ff"}}>turkey</span>}
+                              {opt.label.includes("🐟")&&<span style={{fontSize:9,background:"#eff6ff",color:"#2563eb",borderRadius:10,padding:"1px 5px",border:"1px solid #bfdbfe"}}>fish</span>}
+                            </button>
+                          ));
+                        })()}
+                      </div>
+                    )}
+                    <div style={{ padding:"10px 13px 13px" }}>
+                      {/* For hers post-workout meal, show timing-appropriate note */}
+                    {person==="hers" && m.name.includes("★") && hersPostWorkoutMeal!=="breakfast" && (
+                      <div style={{ background:"#fdf2f8", border:"1px solid #fbcfe8", borderRadius:8, padding:"8px 10px", marginBottom:8, fontSize:12, color:"#831843", lineHeight:1.5 }}>
+                        {hersPostWorkoutMeal==="lunch"
+                          ? "🍽️ Post-workout lunch — eat this within 1–2 hours of finishing. Protein + moderate carbs for recovery. Replace your usual lunch with this."
+                          : "🌙 Post-workout dinner — eat this within 1–2 hours of finishing training. This replaces your normal dinner. Slightly higher carbs than a standard rest day dinner."}
+                      </div>
+                    )}
+                    <p style={{ margin:"0 0 8px", fontSize:13, color:"#333", lineHeight:1.7 }}>
+                      {(()=>{
+                        if(person==="hers" && m.name.includes("★") && hersPostWorkoutMeal==="lunch") {
+                          const lunchOpts=[
+                            { desc:"Grilled chicken breast (160g), 70g brown rice, steamed broccoli. Classic post-workout recovery meal." },
+                            { desc:"Grilled chicken (160g), 70g quinoa, roasted peppers, cucumber, lemon dressing." },
+                            { desc:"2 slices wholemeal bread, 150g chicken breast, lettuce, tomato, mustard." },
+                          ];
+                          return (lunchOpts[optIdx]||lunchOpts[0]).desc;
+                        }
+                        if(person==="hers" && m.name.includes("★") && hersPostWorkoutMeal==="dinner") {
+                          const dinnerOpts=[
+                            { desc:"Baked chicken breast (170g) with roasted courgette and cherry tomatoes. 80g sweet potato mash." },
+                            { desc:"Skinless chicken thigh (165g) with butternut squash (80g), courgette, peppers. All roasted." },
+                            { desc:"Turkey mince (165g) with onion, garlic, passata, herbs. 70g wholemeal pasta." },
+                            { desc:"Salmon fillet (150g) baked with lemon and dill. 70g sweet potato mash." },
+                          ];
+                          return (dinnerOpts[optIdx]||dinnerOpts[0]).desc;
+                        }
+                        return selectedOpt?.desc;
+                      })()}
+                    </p>
+                      <div style={{ display:"flex", gap:5, flexWrap:"wrap", marginBottom:8 }}>
+                        {[{l:`${selectedOpt?.kcal} kcal`,c:typeColor},{l:`${selectedOpt?.protein}g protein`,c:C.gym},{l:`${selectedOpt?.carbs}g carbs`,c:"#ea580c"},{l:`${selectedOpt?.fat}g fat`,c:"#7c3aed"}].map((t,j)=>(
+                          <span key={j} style={{ fontSize:10, padding:"2px 7px", borderRadius:20, background:`${t.c}12`, color:t.c, border:`1px solid ${t.c}30` }}>{t.l}</span>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* ── SHOPPING LIST ── */}
+      <div style={{ padding:"0 14px 12px" }}>
+        <button onClick={()=>setShowShoppingList(s=>!s)} style={{
+          width:"100%", padding:"13px", borderRadius:12,
+          border:`2px solid ${accentColor}`,
+          background:showShoppingList?accentColor:"transparent",
+          color:showShoppingList?"#fff":accentColor,
+          cursor:"pointer", fontSize:14, fontFamily:"inherit",
+          fontWeight:"bold", letterSpacing:0.5, transition:"all 0.2s",
+          display:"flex", alignItems:"center", justifyContent:"center", gap:8,
+        }}>
+          <span>🛒</span>
+          {showShoppingList ? "Hide Shopping List" : `Generate Week ${week} Shopping List`}
+        </button>
+        {showShoppingList && (
+          <div style={{ display:"flex", background:C.bg, border:`1px solid ${C.border}`, borderRadius:10, padding:3, gap:3, marginTop:8 }}>
+            {[{id:"his",label:"👨 His",color:C.his},{id:"hers",label:"👩 Hers",color:C.hers},{id:"both",label:"👨👩 Combined",color:"#059669"}].map(m=>(
+              <button key={m.id} onClick={()=>{setShoppingMode(m.id);setCheckedItems({});}} style={{
+                flex:1, padding:"8px 4px", borderRadius:7, border:"none",
+                background:shoppingMode===m.id?m.color:"transparent",
+                color:shoppingMode===m.id?"#fff":C.muted,
+                cursor:"pointer", fontSize:11, fontFamily:"inherit",
+                fontWeight:shoppingMode===m.id?"bold":"normal", transition:"all 0.2s",
+              }}>{m.label}</button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {showShoppingList && (() => {
+        const hisGrouped = (shoppingMode==="his"||shoppingMode==="both") ? generateShoppingList("his", week, gymDays, hersDayTypes, selectedOptions, selectedFakeaway) : {};
+        const hersGrouped = (shoppingMode==="hers"||shoppingMode==="both") ? generateShoppingList("hers", week, gymDays, hersDayTypes, selectedOptions, selectedFakeaway) : {};
+        // Merge if combined
+        const grouped = {};
+        CAT_ORDER.forEach(cat => {
+          const hisItems = hisGrouped[cat] || [];
+          const hersItems = hersGrouped[cat] || [];
+          const merged = [...hisItems];
+          hersItems.forEach(hi => { if(!merged.find(m=>m.item===hi.item)) merged.push(hi); });
+          grouped[cat] = merged;
+        });
+        const listLabel = shoppingMode==="both" ? "Combined" : shoppingMode==="his" ? "His" : "Hers";
+        const listColor = shoppingMode==="both" ? "#059669" : shoppingMode==="his" ? C.his : C.hers;
+        const allItems = Object.values(grouped).flat();
+        const checkedCount = allItems.filter(i => checkedItems[i.item]).length;
+        const toggleItem = (itemName) => setCheckedItems(prev => ({...prev, [itemName]: !prev[itemName]}));
+        return (
+          <div style={{ padding:"0 14px 20px" }}>
+            <div style={{ background:"#fff", border:`1px solid ${C.border}`, borderRadius:12, overflow:"hidden" }}>
+              {/* List header */}
+              <div style={{ padding:"14px 16px", borderBottom:`1px solid ${C.border}`, display:"flex", justifyContent:"space-between", alignItems:"center", background:`${listColor}08` }}>
+                <div>
+                  <div style={{ fontSize:15, color:listColor, fontWeight:"bold" }}>Week {week} — {listLabel} Shopping List</div>
+                  <div style={{ fontSize:11, color:C.faint, marginTop:2 }}>
+                    {checkedCount} of {allItems.length} items ticked off
+                  </div>
+                </div>
+                <button onClick={()=>setCheckedItems({})} style={{
+                  padding:"4px 10px", fontSize:11, borderRadius:8,
+                  border:`1px solid ${C.border}`, background:"transparent",
+                  color:C.muted, cursor:"pointer", fontFamily:"inherit",
+                }}>
+                  Clear
+                </button>
+              </div>
+
+              {/* Progress bar */}
+              <div style={{ height:4, background:C.border }}>
+                <div style={{ height:"100%", width:`${allItems.length ? (checkedCount/allItems.length)*100 : 0}%`, background:listColor, transition:"width 0.3s" }} />
+              </div>
+
+              {/* Note */}
+              <div style={{ padding:"10px 16px", background:"#fffbeb", borderBottom:`1px solid #fde68a`, fontSize:12, color:"#92400e", lineHeight:1.5 }}>
+                📋 Based on your selected meal options for both of you this week. Tap to tick off as you shop. Quantities are for the full week.
+              </div>
+
+              {/* Categories */}
+              {CAT_ORDER.map(cat => {
+                const items = grouped[cat];
+                if (!items || items.length === 0) return null;
+                return (
+                  <div key={cat} style={{ borderBottom:`1px solid ${C.border}` }}>
+                    <div style={{ padding:"10px 16px 6px", fontSize:10, letterSpacing:3, color:C.faint, textTransform:"uppercase", background:C.bg }}>
+                      {cat}
+                    </div>
+                    {items.map((item, i) => {
+                      const isChecked = !!checkedItems[item.item];
+                      return (
+                        <div key={i} onClick={()=>toggleItem(item.item)} style={{
+                          display:"flex", alignItems:"center", gap:12,
+                          padding:"10px 16px", cursor:"pointer",
+                          background:isChecked?"#f9f9f7":"#fff",
+                          borderTop:`1px solid ${C.border}`,
+                          transition:"background 0.15s",
+                        }}>
+                          <div style={{
+                            width:20, height:20, borderRadius:6, flexShrink:0,
+                            border:`2px solid ${isChecked?listColor:C.border}`,
+                            background:isChecked?listColor:"transparent",
+                            display:"flex", alignItems:"center", justifyContent:"center",
+                            transition:"all 0.15s",
+                          }}>
+                            {isChecked && <span style={{ color:"#fff", fontSize:12, fontWeight:"bold" }}>✓</span>}
+                          </div>
+                          <div style={{ flex:1 }}>
+                            <span style={{
+                              fontSize:13, color:isChecked?C.faint:C.text,
+                              textDecoration:isChecked?"line-through":"none",
+                              transition:"all 0.15s",
+                            }}>
+                              {item.item}
+                            </span>
+                          </div>
+                          <div style={{ fontSize:11, color:C.faint, flexShrink:0 }}>
+                            {item.unit}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })}
+
+              {allItems.length === 0 && (
+                <div style={{ padding:"30px 16px", textAlign:"center", color:C.faint, fontSize:13 }}>
+                  No items found — make sure meals are selected for the week.
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      })()}
+
+      <div style={{ padding:"4px 18px 40px", textAlign:"center" }}>
+        <p style={{ fontSize:10, color:C.faint, lineHeight:1.6 }}>
+          Mifflin-St Jeor BMR · Adjusted for activity levels · Consult a GP or registered dietitian for personalised medical advice.
+        </p>
+      </div>
+    </div>
+  );
+}
